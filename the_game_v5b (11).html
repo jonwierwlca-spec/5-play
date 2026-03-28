@@ -1,0 +1,2175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2 Play</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://w.soundcloud.com/player/api.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #ffd97a; --gold-bright: #ffe9a0; --gold-dim: #ffc94a;
+  --ink: #0d0d0d; --surface: #1a1a1a; --surface2: #222222;
+  --border: rgba(255,217,122,0.35); --border-bright: rgba(255,217,122,0.7);
+  --text: #ffffff; --muted: #cccccc;
+}
+body {
+  background: var(--ink); color: var(--text);
+  font-family: 'Playfair Display', Georgia, serif;
+  min-height: 100vh; padding: 2rem 1.5rem; overflow-x: hidden;
+}
+body::before {
+  content:''; position:fixed; inset:0;
+  background: radial-gradient(ellipse 60% 40% at 20% 80%, rgba(120,60,20,0.12) 0%, transparent 70%),
+              radial-gradient(ellipse 50% 40% at 80% 20%, rgba(100,50,15,0.1) 0%, transparent 70%);
+  pointer-events:none; z-index:0;
+}
+.wrap { width:100%; max-width:560px; position:relative; z-index:1; margin:0 auto; }
+.screen { display:none; }
+.screen.active { display:block; animation:fadeIn 0.5s ease both; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+
+.intro-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(1.6rem,5vw,2.2rem); color:var(--gold); text-align:center; letter-spacing:0.12em; line-height:1.3; margin-bottom:0.4rem; }
+.intro-rule { display:flex; align-items:center; gap:12px; margin:1.2rem 0; }
+.intro-rule span { flex:1; height:1px; background:var(--border-bright); }
+.intro-rule em { color:var(--gold-dim); font-size:1.1rem; font-style:normal; }
+
+.form-label { font-size:0.78rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); display:block; margin-bottom:0.5rem; }
+.form-name { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:#fff; font-family:'Playfair Display',serif; font-size:1.1rem; padding:10px 14px; outline:none; transition:border-color 0.2s; margin-bottom:1.4rem; }
+.form-name:focus { border-color:var(--gold); }
+.form-name::placeholder { color:#666; }
+
+.section-title { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin:1.2rem 0 0.6rem; display:flex; align-items:center; gap:8px; }
+.section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.pill-flow { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:0.5rem; }
+.check-item { position:relative; cursor:pointer; }
+.check-item input { position:absolute; opacity:0; width:0; height:0; }
+.check-label { display:block; padding:7px 16px; border:1px solid var(--border); border-radius:30px; font-size:0.83rem; color:#dddddd; text-align:center; transition:all 0.18s; background:var(--surface); user-select:none; white-space:nowrap; }
+.check-item input:checked ~ .check-label { border-color:var(--gold); background:rgba(255,217,122,0.12); color:var(--gold); }
+
+.gender-pill { display:block; padding:8px 6px; border:1px solid var(--border); border-radius:8px; font-size:0.82rem; color:#dddddd; text-align:center; transition:all 0.18s; background:var(--surface); user-select:none; }
+input[type=radio]:checked ~ .gender-pill { border-color:var(--gold); background:rgba(255,217,122,0.1); color:var(--gold); }
+
+.level-row { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:1.5rem; }
+.level-btn { padding:5px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:#b8a070; font-family:'Playfair Display',serif; font-size:0.85rem; letter-spacing:0.06em; cursor:pointer; transition:all 0.2s; }
+.level-btn.active { border-color:var(--gold); background:rgba(255,217,122,0.08); color:var(--gold); }
+.level-btn.empty { opacity:0.28; cursor:not-allowed; }
+
+.heat-bar { display:flex; gap:5px; justify-content:center; margin-bottom:1rem; }
+.heat-dot { width:6px; height:6px; border-radius:50%; background:var(--border); transition:background 0.3s; }
+.heat-dot.on { background:var(--gold); }
+.heat-dot.hot { background:#c06040; }
+
+.command-card { background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:2.5rem 2rem; text-align:center; min-height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; margin-bottom:1.5rem; position:relative; overflow:hidden; }
+.command-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--gold-dim),transparent); }
+.command-text { font-size:clamp(1rem,3vw,1.35rem); font-style:normal; font-weight:700; color:#ffffff; line-height:1.6; transition:opacity 0.3s; min-height:3em; display:flex; align-items:center; justify-content:center; }
+.command-text.fading { opacity:0; }
+.card-meta { font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; color:#cccccc; margin-top:1rem; }
+.command-img { width:100%; max-width:320px; max-height:240px; object-fit:contain; border-radius:12px; margin-bottom:1.2rem; opacity:0; transition:opacity 0.4s; border:1px solid var(--border); display:none; }
+.command-img.visible { opacity:1; display:block; }
+.level-label { position:absolute; top:12px; right:14px; font-size:0.68rem; letter-spacing:0.15em; color:var(--gold); text-transform:uppercase; }
+
+.btn-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:1rem; }
+.btn { padding:11px 26px; border-radius:30px; border:1px solid var(--border); font-family:'Playfair Display',serif; font-size:0.95rem; letter-spacing:0.08em; cursor:pointer; transition:all 0.2s; font-weight:700; }
+.btn-gold { background:var(--gold); border-color:var(--gold); color:#0a0806; }
+.btn-gold:hover { background:var(--gold-bright); }
+.btn-outline { background:transparent; color:var(--gold); }
+.btn-outline:hover { background:rgba(255,217,122,0.08); }
+.btn-voice { background:transparent; color:#c06040; border-color:rgba(192,96,64,0.3); }
+.btn-voice:hover { background:rgba(192,96,64,0.08); }
+.btn-voice.speaking { border-color:#c06040; animation:pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{border-color:#c06040;}50%{border-color:rgba(192,96,64,0.2);} }
+
+.timer-wrap { text-align:center; margin-bottom:1.2rem; min-height:88px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.timer-ring { position:relative; width:76px; height:76px; margin:0 auto 0.4rem; }
+.timer-ring svg { transform:rotate(-90deg); }
+.timer-track { fill:none; stroke:var(--border); stroke-width:3; }
+.timer-fill { fill:none; stroke:var(--gold-dim); stroke-width:3; stroke-linecap:round; transition:stroke-dashoffset 0.9s linear, stroke 0.5s; }
+.timer-fill.urgent { stroke:#c06040; }
+.timer-digit { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:1.1rem; color:#ffd97a; transition:color 0.5s; }
+.timer-digit.urgent { color:#c06040; }
+.timer-label { font-size:0.68rem; letter-spacing:0.15em; text-transform:uppercase; color:#cccccc; }
+.timer-done { font-size:1rem; color:#c06040; animation:tpulse 1s ease infinite; }
+@keyframes tpulse { 0%,100%{opacity:1;}50%{opacity:0.35;} }
+
+.ornament { text-align:center; color:var(--gold-dim); font-size:1.2rem; margin:0.8rem 0; letter-spacing:0.3em; }
+.voice-note { font-size:0.72rem; color:#cccccc; text-align:center; letter-spacing:0.05em; margin-top:0.4rem; }
+.restart-link { display:block; text-align:center; font-size:0.8rem; color:#ffd97a; cursor:pointer; letter-spacing:0.1em; margin-top:1rem; text-decoration:underline; text-underline-offset:3px; }
+
+.pack-btn { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; text-align:left; cursor:pointer; transition:all 0.2s; margin-bottom:10px; }
+.pack-btn:hover { border-color:var(--gold); background:rgba(255,217,122,0.06); }
+.pack-name { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; color:var(--gold); letter-spacing:0.1em; margin-bottom:2px; }
+.pack-desc { font-size:0.82rem; color:#aaaaaa; }
+
+.form-textarea { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:#fff; font-family:'Playfair Display',serif; font-size:0.95rem; padding:10px 14px; outline:none; resize:vertical; line-height:1.8; min-height:70px; transition:border-color 0.2s; margin-bottom:0.8rem; }
+.form-textarea:focus { border-color:var(--gold); }
+.form-textarea::placeholder { color:#888; }
+
+/* Round complete overlay */
+#roundCompleteOverlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:100; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- INTRO -->
+  <div class="screen" id="screen-intro">
+    <div style="text-align:center; padding:2rem 0;">
+      <div class="intro-title">2 Play</div>
+      <div class="intro-rule"><span></span><em>✦</em><span></span></div>
+      <p style="font-size:0.9rem; color:#cccccc; line-height:2.2; margin-bottom:2rem;">
+        <span style="color:var(--gold);">I</span> &nbsp;&middot;&nbsp; Pre-naked foreplay<br>
+        <span style="color:var(--gold);">II</span> &nbsp;&middot;&nbsp; Naked foreplay<br>
+        <span style="color:var(--gold);">III</span> &nbsp;&middot;&nbsp; Sex<br>
+        <span style="color:var(--gold);">IV</span> &nbsp;&middot;&nbsp; Hardcore<br>
+        <span style="color:var(--gold);">V</span> &nbsp;&middot;&nbsp; The finish
+      </p>
+      <div class="btn-row"><button class="btn btn-gold" onclick="goTo('screen-names')">Begin &rarr;</button></div>
+    </div>
+  </div>
+
+  <!-- NAMES -->
+  <div class="screen active" id="screen-names">
+    <div style="text-align:center; margin-bottom:1.5rem;"><div class="intro-title">Who's Playing?</div></div>
+    <div style="display:flex; gap:16px; margin-bottom:1.4rem;">
+      <div style="flex:1;">
+        <label class="form-label">Player One</label>
+        <input class="form-name" id="p1name" placeholder="Name..." maxlength="30" autocapitalize="words" autocomplete="off" style="margin-bottom:0.6rem;"/>
+        <label class="form-label">They are</label>
+        <div style="display:flex; gap:8px;">
+          <label style="flex:1; position:relative; cursor:pointer;"><input type="radio" name="p1gender" value="female" checked style="position:absolute;opacity:0;"><span class="gender-pill">She / Her</span></label>
+          <label style="flex:1; position:relative; cursor:pointer;"><input type="radio" name="p1gender" value="male" style="position:absolute;opacity:0;"><span class="gender-pill">He / Him</span></label>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <label class="form-label">Player Two</label>
+        <input class="form-name" id="p2name" placeholder="Name..." maxlength="30" autocapitalize="words" autocomplete="off" style="margin-bottom:0.6rem;"/>
+        <label class="form-label">They are</label>
+        <div style="display:flex; gap:8px;">
+          <label style="flex:1; position:relative; cursor:pointer;"><input type="radio" name="p2gender" value="female" style="position:absolute;opacity:0;"><span class="gender-pill">She / Her</span></label>
+          <label style="flex:1; position:relative; cursor:pointer;"><input type="radio" name="p2gender" value="male" checked style="position:absolute;opacity:0;"><span class="gender-pill">He / Him</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goTo('screen-intro')">&larr;</button>
+      <button class="btn btn-gold" onclick="goToP1Prefs()">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- P1 PREFS -->
+  <div class="screen" id="screen-p1prefs">
+    <div style="text-align:center; margin-bottom:1.2rem;">
+      <div style="font-size:0.68rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:0.5rem;">Step 1 of 2</div>
+      <div class="intro-title" id="p1prefsTitle">Player One</div>
+      <p style="font-size:0.82rem; color:#cccccc; margin-top:0.4rem; line-height:1.6;">Check everything you're into.<br>Your partner won't see this screen.</p>
+    </div>
+    <div class="section-title">Foreplay</div>
+    <div class="pill-flow">
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="hair_pulling"><span class="check-label">Hair Pulling</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="blindfolds"><span class="check-label">Blindfolds</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="spanking"><span class="check-label">Spanking</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="choking"><span class="check-label">Light Choking</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="dirty_talk"><span class="check-label">Dirty Talk</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="edging"><span class="check-label">Teasing & Edging</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="restraint"><span class="check-label">Restraint</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="toys"><span class="check-label">Toys</span></label>
+    </div>
+    <div class="section-title">Sex</div>
+    <div class="pill-flow">
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="anal"><span class="check-label">Anal</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="exhibitionism"><span class="check-label">Exhibitionism</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="degradation"><span class="check-label">Degradation</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="tit_fucking"><span class="check-label">Tit Fucking</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="face_sitting"><span class="check-label">Face Sitting</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="throat_fucking"><span class="check-label">Throat Fucking</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="double_penetration"><span class="check-label">Double Penetration</span></label>
+      <label class="check-item"><input type="checkbox" name="p1prefs" value="porn"><span class="check-label">Watching Porn</span></label>
+    </div>
+    <div class="section-title" id="p1finishTitle">Where does he finish?</div>
+    <div class="pill-flow">
+      <label class="check-item"><input type="checkbox" name="p1finish" value="inside"><span class="check-label">Inside</span></label>
+      <label class="check-item"><input type="checkbox" name="p1finish" value="tits"><span class="check-label">On Her Tits</span></label>
+      <label class="check-item"><input type="checkbox" name="p1finish" value="ass"><span class="check-label">On Her Ass</span></label>
+      <label class="check-item"><input type="checkbox" name="p1finish" value="face"><span class="check-label">On Her Face</span></label>
+      <label class="check-item"><input type="checkbox" name="p1finish" value="mouth"><span class="check-label">In Her Mouth</span></label>
+      <label class="check-item"><input type="checkbox" name="p1finish" value="back"><span class="check-label">On Her Back</span></label>
+    </div>
+    <div class="btn-row" style="margin-top:1.2rem;">
+      <button class="btn btn-outline" onclick="goTo('screen-names')">&larr;</button>
+      <button class="btn btn-gold" onclick="goToP2Prefs()">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- P2 PREFS -->
+  <div class="screen" id="screen-p2prefs">
+    <div style="text-align:center; margin-bottom:1.2rem;">
+      <div style="font-size:0.68rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:0.5rem;">Step 2 of 2</div>
+      <div class="intro-title" id="p2prefsTitle">Player Two</div>
+      <p style="font-size:0.82rem; color:#cccccc; margin-top:0.4rem; line-height:1.6;">Check everything you're into.<br>Your partner won't see this screen.</p>
+    </div>
+    <div class="section-title">Foreplay</div>
+    <div class="pill-flow">
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="hair_pulling"><span class="check-label">Hair Pulling</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="blindfolds"><span class="check-label">Blindfolds</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="spanking"><span class="check-label">Spanking</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="choking"><span class="check-label">Light Choking</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="dirty_talk"><span class="check-label">Dirty Talk</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="edging"><span class="check-label">Teasing & Edging</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="restraint"><span class="check-label">Restraint</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="toys"><span class="check-label">Toys</span></label>
+    </div>
+    <div class="section-title">Sex</div>
+    <div class="pill-flow">
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="anal"><span class="check-label">Anal</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="exhibitionism"><span class="check-label">Exhibitionism</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="degradation"><span class="check-label">Degradation</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="tit_fucking"><span class="check-label">Tit Fucking</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="face_sitting"><span class="check-label">Face Sitting</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="throat_fucking"><span class="check-label">Throat Fucking</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="double_penetration"><span class="check-label">Double Penetration</span></label>
+      <label class="check-item"><input type="checkbox" name="p2prefs" value="porn"><span class="check-label">Watching Porn</span></label>
+    </div>
+    <div class="section-title" id="p2finishTitle">Where does he finish?</div>
+    <div class="pill-flow">
+      <label class="check-item"><input type="checkbox" name="p2finish" value="inside"><span class="check-label">Inside</span></label>
+      <label class="check-item"><input type="checkbox" name="p2finish" value="tits"><span class="check-label">On Her Tits</span></label>
+      <label class="check-item"><input type="checkbox" name="p2finish" value="ass"><span class="check-label">On Her Ass</span></label>
+      <label class="check-item"><input type="checkbox" name="p2finish" value="face"><span class="check-label">On Her Face</span></label>
+      <label class="check-item"><input type="checkbox" name="p2finish" value="mouth"><span class="check-label">In Her Mouth</span></label>
+      <label class="check-item"><input type="checkbox" name="p2finish" value="back"><span class="check-label">On Her Back</span></label>
+    </div>
+    <div class="btn-row" style="margin-top:1.2rem;">
+      <button class="btn btn-outline" onclick="goTo('screen-p1prefs')">&larr;</button>
+      <button class="btn btn-gold" onclick="syncAndContinue()">Next &rarr;</button>
+    </div>
+  </div>
+
+
+  <!-- MATCH REVEAL -->
+  <div class="screen" id="screen-reveal">
+    <div style="min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
+      <div id="revealHeader" style="font-family:'Bebas Neue',sans-serif; font-size:clamp(1.6rem,5vw,2.2rem); color:var(--gold); letter-spacing:0.12em; margin-bottom:0.5rem;"></div>
+      <div class="intro-rule"><span></span><em>✦</em><span></span></div>
+      <div id="revealLine" style="font-size:clamp(1.1rem,3vw,1.4rem); color:#ffffff; font-weight:700; min-height:2em; display:flex; align-items:center; justify-content:center; margin:1.5rem 0; transition:opacity 0.4s;"></div>
+      <div id="revealMatches" style="display:none; margin:0.5rem 0 2rem;">
+        <p style="font-size:0.82rem; color:#cccccc; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:1rem;">You both want</p>
+        <div id="revealMatchList" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center;"></div>
+      </div>
+      <div class="btn-row" id="revealBtn" style="display:none; margin-top:1rem;">
+        <button class="btn btn-gold" style="font-size:1.1rem; padding:14px 36px;" onclick="goTo('screen-voice')">Let's use that &rarr;</button>
+      </div>
+      <div id="revealNoMatch" style="display:none; margin-top:1rem;">
+        <p style="font-size:0.95rem; color:#cccccc; line-height:1.8; margin-bottom:1.5rem;">You didn't match on anything specific.<br>But you're both here, so that's something.</p>
+        <button class="btn btn-gold" style="font-size:1.1rem; padding:14px 36px;" onclick="goTo('screen-voice')">Continue &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOICE SETUP -->
+  <div class="screen" id="screen-voice">
+    <div style="text-align:center; margin-bottom:1.5rem;">
+      <div class="intro-title">Voice Setup</div>
+      <p style="font-size:0.85rem; color:#cccccc; margin-top:0.6rem; line-height:1.8;">ElevenLabs API key from elevenlabs.io &rarr; Profile &rarr; API Key.</p>
+    </div>
+    <label class="form-label">ElevenLabs API Key</label>
+    <input class="form-name" id="elApiKey" placeholder="sk-..." type="password" autocomplete="off"/>
+    <label class="form-label">Voice</label>
+    <select class="form-name" id="elVoice" style="cursor:pointer;">
+      <option value="XB0fDUnXU5powFXDhCwa">Charlotte &mdash; sultry &amp; deep</option>
+      <option value="EXAVITQu4vr4xnSDxMaL">Bella &mdash; warm &amp; breathy</option>
+      <option value="21m00Tcm4TlvDq8ikWAM">Rachel &mdash; smooth &amp; calm</option>
+      <option value="MF3mGyEYCl7XYWbV9V6O">Elli &mdash; young &amp; playful</option>
+      <option value="AZnzlk1XvdvUeBnXmlld">Domi &mdash; confident &amp; husky</option>
+      <option value="jsCqWAovK2LkecY7zXl4">Freya &mdash; sultry &amp; deep</option>
+    </select>
+    <label class="form-label" style="margin-top:0.2rem;">Stability &amp; Style</label>
+    <div style="display:flex; gap:16px; margin-bottom:1.4rem;">
+      <div style="flex:1;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span style="font-size:0.72rem; color:var(--muted);">Stability</span><span style="font-size:0.72rem; color:var(--gold-dim);" id="stabVal">0.4</span></div>
+        <input type="range" id="elStability" min="0" max="1" step="0.05" value="0.4" style="width:100%;" oninput="document.getElementById('stabVal').textContent=parseFloat(this.value).toFixed(2)"/>
+      </div>
+      <div style="flex:1;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span style="font-size:0.72rem; color:var(--muted);">Style</span><span style="font-size:0.72rem; color:var(--gold-dim);" id="styleVal">0.5</span></div>
+        <input type="range" id="elStyle" min="0" max="1" step="0.05" value="0.5" style="width:100%;" oninput="document.getElementById('styleVal').textContent=parseFloat(this.value).toFixed(2)"/>
+      </div>
+    </div>
+    <label class="form-label">Round Timers</label>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:1.4rem;">
+      <div><div style="font-size:0.7rem; color:var(--muted); text-align:center; margin-bottom:5px;">Round I</div>
+        <select class="form-name" id="timer1" style="margin-bottom:0; padding:8px 10px; font-size:0.9rem; text-align:center;">
+          <option value="60">1 min</option><option value="120" selected>2 min</option><option value="180">3 min</option><option value="300">5 min</option><option value="0">Off</option>
+        </select></div>
+      <div><div style="font-size:0.7rem; color:var(--muted); text-align:center; margin-bottom:5px;">Round II</div>
+        <select class="form-name" id="timer2" style="margin-bottom:0; padding:8px 10px; font-size:0.9rem; text-align:center;">
+          <option value="60">1 min</option><option value="120" selected>2 min</option><option value="180">3 min</option><option value="300">5 min</option><option value="0">Off</option>
+        </select></div>
+      <div><div style="font-size:0.7rem; color:var(--muted); text-align:center; margin-bottom:5px;">Round III</div>
+        <select class="form-name" id="timer3" style="margin-bottom:0; padding:8px 10px; font-size:0.9rem; text-align:center;">
+          <option value="60">1 min</option><option value="120">2 min</option><option value="180">3 min</option><option value="300" selected>5 min</option><option value="0">Off</option>
+        </select></div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:1.4rem;">
+      <div><div style="font-size:0.7rem; color:var(--muted); text-align:center; margin-bottom:5px;">Round IV</div>
+        <select class="form-name" id="timer4" style="margin-bottom:0; padding:8px 10px; font-size:0.9rem; text-align:center;">
+          <option value="60">1 min</option><option value="120">2 min</option><option value="180">3 min</option><option value="300" selected>5 min</option><option value="0">Off</option>
+        </select></div>
+      <div><div style="font-size:0.7rem; color:var(--muted); text-align:center; margin-bottom:5px;">Round V</div>
+        <select class="form-name" id="timer5" style="margin-bottom:0; padding:8px 10px; font-size:0.9rem; text-align:center;">
+          <option value="60">1 min</option><option value="120">2 min</option><option value="180">3 min</option><option value="300">5 min</option><option value="0" selected>Off</option>
+        </select></div>
+    </div>
+    <div style="margin-bottom:1.4rem;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span style="font-size:0.72rem; color:var(--muted);">Speed</span><span style="font-size:0.72rem; color:var(--gold-dim);" id="speedVal">0.9</span></div>
+      <input type="range" id="elSpeed" min="0.5" max="1.5" step="0.05" value="0.9" style="width:100%;" oninput="document.getElementById('speedVal').textContent=parseFloat(this.value).toFixed(2)"/>
+      <div style="display:flex; justify-content:space-between; margin-top:3px;"><span style="font-size:0.68rem; color:var(--muted);">Slower</span><span style="font-size:0.68rem; color:var(--muted);">Faster</span></div>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.4rem; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <span style="font-size:0.9rem; color:#fff;">Voice narration</span>
+      <label style="position:relative; display:inline-block; width:44px; height:24px; cursor:pointer;">
+        <input type="checkbox" id="voiceToggle" checked style="opacity:0; width:0; height:0;">
+        <span id="voiceToggleSlider" style="position:absolute; inset:0; background:var(--gold); border-radius:24px; transition:0.2s;">
+          <span id="voiceToggleThumb" style="position:absolute; width:18px; height:18px; background:#fff; border-radius:50%; top:3px; left:23px; transition:0.2s;"></span>
+        </span>
+      </label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goTo('screen-p2prefs')">&larr;</button>
+      <button class="btn btn-outline" onclick="testVoice()" id="testBtn">Test Voice</button>
+      <button class="btn btn-gold" onclick="launchGame()">Let's Play &rarr;</button>
+    </div>
+    <div id="voiceError" style="font-size:0.8rem; color:#c06040; text-align:center; margin-top:0.8rem; line-height:1.6;"></div>
+    <div id="corsHelp" style="display:none; margin-top:1rem; background:var(--surface); border:1px solid rgba(201,169,122,0.3); border-radius:8px; padding:1rem; font-size:0.8rem; color:var(--muted); line-height:1.8;">
+      <strong style="color:var(--gold-dim);">How to fix:</strong><br>
+      Open Terminal in the folder containing this file and run:<br>
+      <code style="background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; color:var(--text); font-size:0.75rem;">python3 -m http.server 8080</code><br>
+      Then open <code style="background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; color:var(--text); font-size:0.75rem;">http://localhost:8080</code> in your browser.
+    </div>
+  </div>
+
+  <!-- AI INTRO -->
+  <div class="screen" id="screen-aiintro">
+    <div style="min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
+      <div style="position:absolute; top:1.5rem; right:1.5rem;">
+        <button class="btn btn-outline" id="aiSkipBtn" onclick="skipIntro()" style="font-size:0.8rem; padding:7px 18px;">Skip &rarr;</button>
+      </div>
+      <div id="aiIntroLine" style="font-size:clamp(1.2rem,3.5vw,1.6rem); color:#ffffff; line-height:1.6; max-width:440px; min-height:2.5em; display:flex; align-items:center; justify-content:center; font-weight:700; transition:opacity 0.4s;"></div>
+      <div class="btn-row" id="aiIntroBtn" style="display:none; margin-top:2.5rem;">
+        <button class="btn btn-gold" style="font-size:1.1rem; padding:14px 36px;" onclick="goTo('screen-ready')">Let's Play &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PACK SELECT -->
+  <div class="screen" id="screen-packs">
+    <div style="text-align:center; margin-bottom:1.5rem;">
+      <div class="intro-title">Choose Your Pack</div>
+      <p style="font-size:0.85rem; color:#cccccc; margin-top:0.5rem; line-height:1.6;">Pick the vibe for tonight.</p>
+    </div>
+    <button class="pack-btn" onclick="selectPack('standard')"><div class="pack-name">Standard</div><div class="pack-desc">Sexy but not rough</div></button>
+    <button class="pack-btn" onclick="selectPack('vanilla')"><div class="pack-name">Vanilla</div><div class="pack-desc">Sensual, intimate, slow burn</div></button>
+    <button class="pack-btn" onclick="selectPack('kinky')"><div class="pack-name">Kinky</div><div class="pack-desc">Restraint, power play, control</div></button>
+    <button class="pack-btn" onclick="selectPack('letsdo')"><div class="pack-name">Let's Do This</div><div class="pack-desc">Fast, urgent, half the turns</div></button>
+    <button class="pack-btn" onclick="selectPack('filthy')"><div class="pack-name">Filthy</div><div class="pack-desc">No limits. Explicit. All of it.</div></button>
+    <button class="pack-btn" onclick="selectPack('round2')"><div class="pack-name">Round Two</div><div class="pack-desc">An hour later. Get back there.</div></button>
+  </div>
+
+  <!-- READY -->
+  <div class="screen" id="screen-ready">
+    <div style="text-align:center; padding:2rem 0;">
+      <div class="intro-title" id="ready-title">Are You Ready?</div>
+      <div class="intro-rule"><span></span><em>✦</em><span></span></div>
+      <p style="font-size:1rem; color:#ffffff; line-height:1.8; margin-bottom:2.5rem;">The rules are simple.<br>Draw a card. Do what it says.<br>No skipping. No negotiating.</p>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="goTo('screen-packs')">&larr;</button>
+        <button class="btn btn-gold" style="font-size:1.1rem; padding:14px 36px;" onclick="startGame()">Let's Go</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNDRESS TRANSITION -->
+  <div class="screen" id="screen-undress">
+    <div style="min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
+      <div class="intro-title" style="margin-bottom:1.5rem;">Time to undress.</div>
+      <div class="intro-rule"><span></span><em>✦</em><span></span></div>
+      <p style="font-size:1.1rem; color:#ffffff; line-height:2; margin:1.5rem 0 2.5rem; max-width:380px;">Round I is done.<br>Take everything off.<br>Both of you.<br>Right now.<br><br>When you're ready &mdash; Round II begins.</p>
+      <button class="btn btn-gold" style="font-size:1.1rem; padding:14px 36px;" onclick="advanceRound()">We're Ready &rarr;</button>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="screen-game">
+
+    <!-- Minimal top bar: round indicator + heat dots -->
+    <div style="text-align:center; padding:1.5rem 0 1rem;">
+      <div style="font-family:'Bebas Neue',sans-serif; font-size:0.8rem; letter-spacing:0.25em; color:var(--gold-dim);" id="levelLabel">ROUND I</div>
+      <div class="heat-bar" style="margin-top:0.6rem;">
+        <div class="heat-dot" id="h1"></div><div class="heat-dot" id="h2"></div><div class="heat-dot" id="h3"></div><div class="heat-dot" id="h4"></div><div class="heat-dot" id="h5"></div>
+      </div>
+    </div>
+
+    <!-- Full-screen command display -->
+    <div id="commandStage" style="min-height:55vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 2rem;">
+      <img id="commandImg" class="command-img" src="" alt="" />
+      <div id="commandLine" style="font-size:clamp(1.6rem,5vw,2.2rem); color:#ffffff; font-weight:700; line-height:1.5; max-width:500px; min-height:2em; transition:opacity 0.4s; opacity:0.4;">
+        
+      </div>
+      <div id="commandSub" style="font-size:0.72rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold-dim); margin-top:1.2rem; min-height:1em;"></div>
+    </div>
+
+    <!-- Timer ring (minimal, centered) -->
+    <div class="timer-wrap" id="timerWrap" style="margin-bottom:0.5rem;">
+      <div class="timer-ring">
+        <svg width="76" height="76" viewBox="0 0 76 76">
+          <circle class="timer-track" cx="38" cy="38" r="32"/>
+          <circle class="timer-fill" id="timerArc" cx="38" cy="38" r="32"/>
+        </svg>
+        <div class="timer-digit" id="timerDigit"></div>
+      </div>
+      <div class="timer-label" id="timerLabel"></div>
+    </div>
+
+    <!-- Ready to Finish (Round IV only) -->
+    <div id="readyFinishWrap" style="display:none; text-align:center; margin-bottom:0.8rem;">
+      <button class="btn btn-gold" style="font-size:1rem; padding:12px 28px;" onclick="goToFinish()">Ready to Finish &rarr;</button>
+    </div>
+
+    <!-- Director mode controls (shown during auto-director) -->
+    <div id="directorControls" style="display:none; justify-content:center; gap:16px; margin-bottom:1rem;">
+      <button class="btn btn-voice" onclick="if(speaking){if(currentAudio){try{currentAudio.pause();currentAudio.src="";}catch(_){}currentAudio=null;}window.speechSynthesis.cancel();speaking=false;document.getElementById('speakBtn')&&document.getElementById('speakBtn').classList.remove('speaking');}">&#9646;&#9646; Pause</button>
+      <button class="btn btn-outline" onclick="stopDirectorMode()">&#9632; Manual</button>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="btn-row" style="margin-bottom:0.5rem;">
+      <button class="btn btn-voice" id="speakBtn" onclick="speakCurrent()">&#9836; Speak</button>
+      <button class="btn btn-gold" onclick="keepAudioAlive(); drawCommand()">Next</button>
+      <button class="btn btn-outline" onclick="replayCommand()">&#8635; Replay</button>
+      <button class="btn btn-outline" onclick="skipCommand()">Skip</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="shuffleDeck()">Shuffle</button>
+      <button class="btn btn-outline" onclick="openEditor()">Edit</button>
+      <button class="btn btn-outline" onclick="skipRound()" id="skipRoundBtn" style="color:#c06040; border-color:rgba(192,96,64,0.3);">Skip Round</button>
+    </div>
+
+    <!-- Level tabs (minimal, hidden by default, tap round label to show) -->
+    <div style="text-align:center; margin-top:0.8rem;">
+      <div class="level-row" id="levelTabRow" style="display:none; margin-bottom:0;">
+        <button class="level-btn active" id="lvl1btn" onclick="setLevel(1)">I</button>
+        <button class="level-btn" id="lvl2btn" onclick="setLevel(2)">II</button>
+        <button class="level-btn" id="lvl3btn" onclick="setLevel(3)">III</button>
+        <button class="level-btn" id="lvl4btn" onclick="setLevel(4)">IV</button>
+        <button class="level-btn" id="lvl5btn" onclick="setLevel(5)">V</button>
+      </div>
+    </div>
+
+    <div class="voice-note" id="voiceNote" style="margin-top:0.5rem;"></div>
+    <div style="text-align:center; margin-top:0.6rem;">
+      <button class="btn btn-outline" id="musicBtn" onclick="toggleYT()" style="font-size:0.8rem; padding:7px 18px;">&#9834; Mood Music: Off</button>
+    </div>
+    <div id="ytWrap" style="display:none; margin-top:0.8rem;">
+      <iframe id="scPlayer" width="100%" height="80" scrolling="no" frameborder="no" allow="autoplay"
+        src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/cafemusicbgmofficial/sets/slow-jazz&color=%23ffd97a&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false"
+        style="border-radius:12px; display:block;"></iframe>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:8px; padding:0 4px;">
+        <span style="font-size:0.75rem; color:#cccccc;">&#128266;</span>
+        <input type="range" id="musicVolume" min="0" max="100" value="80" step="1" style="flex:1;" oninput="setMusicVolume(this.value)"/>
+        <span style="font-size:0.75rem; color:#cccccc; min-width:28px; text-align:right;" id="volLabel">80</span>
+      </div>
+    </div>
+    <span class="restart-link" onclick="restart()">&#8634; Start over</span>
+  </div>
+
+  <!-- EDIT COMMANDS -->
+  <div class="screen" id="screen-edit">
+    <div style="text-align:center; margin-bottom:1.2rem;">
+      <div class="intro-title">Edit Commands</div>
+      <p style="font-size:0.85rem; color:#cccccc; margin-top:0.5rem; line-height:1.6;">One command per line. Edit or add new ones.</p>
+    </div>
+    <div class="level-row" style="margin-bottom:1rem;">
+      <button class="level-btn active" id="etab1" onclick="switchEditTab(1)">I</button>
+      <button class="level-btn" id="etab2" onclick="switchEditTab(2)">II</button>
+      <button class="level-btn" id="etab3" onclick="switchEditTab(3)">III</button>
+      <button class="level-btn" id="etab4" onclick="switchEditTab(4)">IV</button>
+      <button class="level-btn" id="etab5" onclick="switchEditTab(5)">V</button>
+    </div>
+    <div id="editPanel1"><textarea class="form-textarea" id="edit1" style="min-height:320px;"></textarea></div>
+    <div id="editPanel2" style="display:none;"><textarea class="form-textarea" id="edit2" style="min-height:320px;"></textarea></div>
+    <div id="editPanel3" style="display:none;"><textarea class="form-textarea" id="edit3" style="min-height:320px;"></textarea></div>
+    <div id="editPanel4" style="display:none;"><textarea class="form-textarea" id="edit4" style="min-height:320px;"></textarea></div>
+    <div id="editPanel5" style="display:none;"><textarea class="form-textarea" id="edit5" style="min-height:320px;"></textarea></div>
+    <div style="font-size:0.72rem; color:#888; text-align:center; margin-bottom:1rem;">Delete a line to remove it. Add new lines to add commands.</div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goTo('screen-game')">&larr; Back</button>
+      <button class="btn btn-outline" onclick="restoreDefaults()" style="color:#c06040; border-color:rgba(192,96,64,0.3);">Restore Defaults</button>
+      <button class="btn btn-gold" onclick="saveEditedCommands()">Save & Play</button>
+    </div>
+    <div id="editSaved" style="text-align:center; font-size:0.82rem; color:var(--gold); margin-top:0.8rem; display:none;">Saved!</div>
+  </div>
+
+<!-- WRAP UP -->
+  <div class="screen" id="screen-wrapup">
+    <div style="min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
+      <div class="intro-title" id="wrapupTitle">That was everything.</div>
+      <div class="intro-rule"><span></span><em>✦</em><span></span></div>
+      <p style="font-size:1rem; color:#ffffff; line-height:2; margin:1.5rem 0 2.5rem; max-width:400px;" id="wrapupMsg">
+        You two are incredible together.<br>
+        Seriously. That was hot.<br><br>
+        Take a breath. Clean up.<br>
+        You earned it.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-gold" style="font-size:1rem; padding:12px 28px;" onclick="goAgain()">Go Again</button>
+        <button class="btn btn-outline" onclick="restart()">Done for Tonight</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROUND COMPLETE OVERLAY -->
+  <div id="roundCompleteOverlay">
+    <div class="intro-title" id="roundCompleteTitle" style="margin-bottom:0.5rem;">Round Complete</div>
+    <div class="intro-rule"><span></span><em>✦</em><span></span></div>
+    <p style="color:#cccccc; font-size:1rem; margin:1rem 0 2rem;" id="roundCompleteMsg">Ready for the next level?</p>
+    <button class="btn btn-gold" style="font-size:1.1rem; padding:14px 36px;" onclick="advanceRound()">Next Round</button>
+    <button class="btn btn-outline" style="margin-top:1rem; color:#c06040; border-color:rgba(192,96,64,0.3);" onclick="skipRound()">Skip to Round <span id="skipRoundLabel"></span></button>
+  </div>
+
+</div>
+<script>
+
+// ── STATE ──
+let herName = '', hisName = '';
+let finishPrefs = [];
+let COMMANDS = {1:[],2:[],3:[],4:[],5:[]};
+let deck = [], currentLevel = 1, currentCommand = '', speaking = false, femaleVoice = null;
+let timerInterval = null, timerRemaining = 0, timerTotal = 0;
+let elKey = '', elVoiceId = 'XB0fDUnXU5powFXDhCwa', elStability = 0.4, elStyle = 0.5, elSpeed = 0.9;
+let currentAudio = null;
+let voiceEnabled = true;
+let ytOn = false, scWidget = null;
+let activePack = 'standard';
+let ROUND_LIMIT = { 1: 10, 2: 6, 3: 3, 4: 999, 5: 1 };
+let levelDuration = { 1: 120, 2: 120, 3: 300, 4: 300, 5: 0 };
+let roundDrawCount = 0;
+let pendingNextLevel = 1;
+const CIRC = 2 * Math.PI * 32;
+const levelNames = ['','Pre-Naked Foreplay','Naked Foreplay','Sex','Hardcore','The Finish'];
+const levelRoman = ['','I','II','III','IV','V'];
+
+// ── STANDARD COMMANDS ──
+const STANDARD_COMMANDS = {
+  1: [
+    "Dry Hump Jon on Top – Climb on top of her, straddle her hips, and grind your cock hard against her cunt through all layers of fabric. Roll your hips in slow, deliberate circles, pressing your weight down to feel every inch of her softness and heat.",
+    "Dry Hump Katie on Top – Have her climb on top of you, straddle your hips, and grind her wet cunt against your cock. Lie back and let her ride the friction while you grip her ass and thrust upward to meet every grind.",
+    "Suck Earlobes and Whisper – Pin your partner down on the bed, take their earlobe between your lips and suck hard while whispering the most depraved things you want to do to them.",
+    "Stroke Jon's Cock Over Underwear – Slide your hand inside his pants but keep the underwear on. Grip his hard cock firmly through the fabric and stroke it slowly from base to tip, squeezing the head on every upstroke.",
+    "Stroke Katie's Cunt and Clit Over Underwear – Slip your hand between her thighs, press your fingers against her cunt through the underwear, and rub her clit in tight circles while sliding along her slit, feeling her soak through the material.",
+    "Pull Katie's Shirt Up and Suck on Her Tits – Yank her shirt up roughly, tuck the fabric above her breasts, expose them completely, and latch your mouth onto her tits — suck hard on the nipples, bite gently, and tongue-flick until she's squirming.",
+    "Make Out Like Teenagers – Lie face-to-face or on top and devour each other's mouths for long, sloppy minutes — deep, wet kisses with no rush, tongues wrestling, lips sucking, hands roaming freely as if time has stopped.",
+    "French Kiss While Pulling Katie's Hair – Grab a fistful of her hair at the scalp, yank her head back, and force a deep French kiss — tongues thrusting aggressively while you control her head with the pull.",
+    "French Kiss While Pulling Jon's Hair – Grip his hair tightly, pull his mouth to yours, and invade it with your tongue in a filthy French kiss — kiss hard and deep while tugging his hair to keep him exactly where you want him.",
+    "Grind Your Ass Against Jon's Cock – Lie on your side or stomach; push your ass back firmly against his bulge and rock slowly, letting him feel the heat between your cheeks through the fabric while he grips your hips.",
+    "Tease Katie's Nipples Through Her Shirt – While she's on her back, pinch and roll her nipples between your fingers right through the shirt fabric, twisting just enough to make her gasp before sucking them over the material.",
+    "Finger Katie's Ass Crack Over Pants – Slide your hand down the back of her pants, press a finger firmly along her ass crack through underwear, and rub up and down while whispering how you want to stretch that tight hole later.",
+    "Rub Your Cock Between Katie's Thighs – Position between her legs while she's on her back; slide your clothed cock along her inner thighs and press it against her cunt, dry-humping the gap without entering.",
+    "Bite and Suck Katie's Neck – Pin her wrists above her head and attack her neck — bite the sensitive skin, suck hard enough to leave marks, then soothe with your tongue while grinding your hips into hers.",
+    "Stroke and Squeeze Jon's Balls Over Underwear – Cup his balls through the underwear fabric, roll them gently in your palm, then squeeze with controlled pressure while stroking his shaft at the same time.",
+    "Grind Your Cunt on Jon's Thigh – Straddle one of his thighs while he lies back, press your pussy down hard, and hump his leg shamelessly — rock back and forth until the friction makes you drip.",
+    "Deep Tongue Kiss While Choking Katie Lightly – Wrap one hand around her throat with firm but safe pressure, pull her into a sloppy, aggressive French kiss, tongues battling as you control her breath.",
+    "Lick and Suck Katie's Fingers – Take her fingers into your mouth one by one, suck them deep and wet like you're sucking cock, swirl your tongue, and look her in the eyes while doing it.",
+    "Press Your Hard Cock Against Katie's Ass in Spoon – Spoon behind her, nestle your rigid cock between her ass cheeks, and thrust slowly — let her feel the full length grinding against her through clothes.",
+    "Rub Katie's Clit Fast While French Kissing – While making out with deep tongue kisses, slide your hand between her legs and rub her clit rapidly over the underwear until her hips buck uncontrollably.",
+    "Squeeze and Spank Katie's Ass Cheeks – Flip her onto her stomach, grip and knead her ass firmly through pants, then deliver sharp, stinging spanks that echo while you grind your cock against her.",
+    "Whisper Filthy Commands While Fingering Katie Over Fabric – Lean close to her ear, tell her exactly how you're going to fuck her later in graphic detail, while your fingers work her cunt and clit relentlessly through her soaked underwear.",
+    "Mutual Grinding Face-to-Face – Lie directly on top or side-by-side facing each other, wrap legs around one another, and grind together in desperate, rhythmic humping — feel the heat building with every thrust.",
+    "Tongue Katie's Ear While Pinning Her Down – Hold her wrists down on the bed, push your tongue deep into her ear, lick and probe while grinding your body against hers and telling her how fucking wet she's going to be for you."
+  ],
+  2: [
+    "Slow Romantic Body Kiss Descent on Katie – Start at Katie's neck with tender open-mouth kisses, trail down to suck lovingly on her nipples, then kiss slowly along her inner thighs, teasing so close to her wet pussy she trembles with need.",
+    "Sensual Shaft Worship on Jon – Look into Jon's eyes with desire, then drag your warm tongue in one long, loving stroke from the base of his hard cock all the way to the swollen head, savoring every throbbing inch.",
+    "Gentle Ball Sucking on Jon – Take Jon's balls into your mouth one at a time with soft, wet sucks and slow tongue swirls, stroking his cock tenderly with your hand as you worship him.",
+    "Clit Circle Worship on Katie – Find Katie's swollen clit and trace slow, silky circles around it with the smooth underside of your tongue, licking with romantic devotion while holding her hips.",
+    "Deep Romantic Kissing and Grinding – Pull each other close, naked bodies melting together, and kiss with slow, soulful passion while your hard cock glides teasingly along her slick, wet slit without entering.",
+    "Fingers and Tongue Heaven on Katie – While your tongue makes passionate love to Katie's clit, slide two fingers deep into her soaked cunt and curl them lovingly against her G-spot.",
+    "Slow Neck and Chest Kisses on Jon – Kiss and lick Jon's neck and bare chest with open-mouth heat, sucking gently on his skin while your hand strokes his hard cock in long, sensual strokes.",
+    "Light Ass Tease and Spanks on Katie – Flip Katie onto her stomach, knead and kiss her perfect ass with adoration, deliver a few light stinging spanks, then trail your tongue softly along her crack.",
+    "Scalp Massage into Kisses on Jon – Massage Jon's scalp with slow, loving fingertips, then trail tender kisses and gentle bites down his neck while your naked bodies stay pressed tightly together.",
+    "Consistent Clit Rhythm on Katie – Once Katie starts moaning louder, lock onto her clit with steady, devoted tongue circles and never stop — love her through the rising pleasure with unwavering passion.",
+    "Full-Body Sensual Slide on Jon – Lie on top of Jon skin-to-skin and slide your naked body up and down his, letting your wet cunt glide along his hard cock while your nipples drag across his chest in pure romantic heat.",
+    "Nipple Worship and Pinching on Katie – While licking Katie's clit with deep affection, reach up to pinch, roll, and tug her hard nipples, mixing sweet pleasure with loving intensity.",
+    "Light Biting Trail on Jon's Torso – Deliver a slow trail of gentle bites and sucking kisses down Jon's chest, stomach, and hip bones, getting teasingly close to his cock before pulling back with a smile.",
+    "G-Spot and Clit Symphony on Katie – Slide two fingers into Katie's dripping cunt to stroke her G-spot while your tongue circles her clit in perfect, loving rhythm — make her arch and gasp your name.",
+    "Earlobe Sucking and Whispers on Jon – Suck Jon's earlobe into your mouth with wet heat while whispering romantic, filthy promises about how deeply you want him inside you, then kiss down his chest.",
+    "Face-Sitting Passion on Jon – Lie on your back and have Katie straddle your face so she can grind her hot, wet cunt against your eager tongue while you hold her hips and worship her clit.",
+    "Nape of Neck Love Bites on Katie – Turn Katie's head gently and cover her sensitive nape and neck with slow sucking kisses and light romantic bites while your fingers tease her swollen clit.",
+    "Palm Grind on Katie's Clit – Press the heel of your palm firmly against Katie's bare clit and grind in deep, romantic circles while staring into her eyes with pure desire.",
+    "Delayed Gratification Kisses on Jon – Kiss and lick every inch of Jon's naked body — neck, chest, stomach, thighs — with tender hunger, making him ache before finally giving his throbbing cock one long, loving lick.",
+    "From-Behind Romantic Oral on Katie – Position Katie on all fours, kiss her back tenderly, then lick her dripping cunt from behind while reaching around to rub her clit with loving pressure.",
+    "Fingernail Love Scrapes on Jon – Drag your fingernails slowly and sensually down Jon's bare back while kissing and biting along his spine, keeping your warm naked bodies molded together.",
+    "Consistent Worship on Katie's Clit – Lock onto Katie's clit with steady, passionate tongue strokes once she's close — hold her hips and love her through the building wave without stopping.",
+    "Mutual Naked Embrace and Grind – Wrap your arms and legs around each other tightly, naked skin to skin, and grind slowly together — cock sliding along her wet folds, bodies moving as one in romantic, aching desire."
+  ],
+  3: [
+    "Jon and Katie… oh my God, you two look so fucking sexy naked right now. Katie, wrap yourself around him and pull him deep. Leg Lock – Start in missionary with Jon on top. Katie, wrap your legs around his waist and cross your ankles behind his back. Squeeze tight so you feel every inch of his cock as he thrusts deep inside you. Kiss him passionately while he fucks you hard. __https://bestsexpositions.com/leg-lock-position/__",
+    "Mmm, Jon and Katie… this one is intimate, deep, and perfect for a cuddle fuck that turns filthy. Pretzel – Katie, lie on your side with your knees bent up toward your chest. Jon, straddle your lower leg and slide his cock deep into your pussy. Thrust hard while gripping her ass and thigh — this angle hits her G-spot perfectly and lets you go really deep. __https://bestsexpositions.com/pretzel-position/__",
+    "Damn, Jon and Katie… missionary just got a whole lot deeper. The Eagle – Katie, lie on your back in missionary. Pull your legs way back and throw them over Jon’s shoulders. Jon, fuck her deep and hard — this position gives maximum depth and lets gravity add extra power to every thrust. __https://bestsexpositions.com/eagle-position/__",
+    "Oh wow, you two… this one makes her feel deliciously dirty and taken. Face Down, Ass Up – Katie, get on all fours, then lower your upper body so your face and chest are pressed into the bed. Keep your ass high in the air. Jon, fuck her hard from behind — this position lets him go incredibly deep while you present yourself to him completely. __https://bestsexpositions.com/pictures/2023/06/face-down-ass-up-position-260212152242.jpg__",
+    "Jon and Katie… this is the perfect way to make her cum hard. Prone Bone – Katie, lie flat on your stomach with your legs slightly spread, prop your head up on a pillow. Push your hips up just enough for Jon to slide inside. Jon, fuck her deep and steady with your body weight pressing down on her. Katie, you can even reach your vibrator while he pounds you into the mattress. __https://bestsexpositions.com/pictures/2024/12/sexual-intercourse-positions-2887.gif__",
+    "Jon, stand against the wall. Katie, wrap one leg around his waist and let him fuck you standing. Hold onto his shoulders and take every inch.",
+    "Katie, get on your back and pull your knees all the way to your chest. Jon, fold her in half and fuck her deep in that tight position. Look into her eyes the whole time.",
+    "Jon, sit on the edge of the bed. Katie, sit on his lap facing him and wrap your legs around his waist. Grind and ride him slowly while you kiss deeply.",
+    "Katie, bend over the kitchen counter. Jon, come up behind her and fuck her from behind with long, powerful strokes. Spank her ass lightly between thrusts.",
+    "Jon, lie on his back. Katie, face away and ride him reverse while leaning forward. Jon, hold her ass and help her bounce.",
+    "Katie, lie on her side. Jon, spoon her from behind, lift her top leg, and slide in deep. Fuck her slowly and lazily while you both watch each other in the mirror if you have one.",
+    "Katie, kneel facing the headboard with your hands on it. Jon, take her from behind and fuck her while she pushes back against every thrust. Pull her hair a little.",
+    "Jon, lie flat on the bed. Katie, lie on top of him facing the same direction and guide his cock inside you. Fuck him with slow, full-body grinding motions.",
+    "Katie, get on her back with her head slightly off the edge. Jon, stand and fuck her in missionary at the edge while holding her thighs wide open. Look down at her beautiful face.",
+    "Jon, sit in a chair. Katie, straddle him and ride hard while he sucks on her nipples. Bounce deep and fast.",
+    "Katie, lie on her back and spread her legs in a wide V, holding her own ankles. Jon, kneel and thrust deep while watching her stretch for him.",
+    "Jon, stand behind Katie while she bends forward at the waist. Fuck her from behind while holding her breasts and kissing her neck. Make her moan loud.",
+    "Katie, get on top facing away, lean back so her hands rest on Jon's chest, and ride him while he plays with her clit.",
+    "Jon, lie on his side. Katie, face him in a scissor position with legs intertwined. Grind and fuck slowly while looking into each other's eyes.",
+    "Katie, get on all fours on the floor. Jon, kneel behind and take her doggy style with one hand lightly spanking her ass on every few thrusts.",
+    "Jon, lie on the bed. Katie, climb on in cowgirl and ride him while he holds her hips firmly, controlling some of the rhythm. Make it deep and possessive.",
+    "Katie, lie flat on her stomach. Jon, lie completely on top of her and fuck her with slow, deep grinding thrusts. Full body weight and contact.",
+    "Jon, sit on the couch. Katie, face him and ride vigorously while he grips her ass. Kiss him sloppily and ride until you're both shaking."
+  ],
+  4: [
+    "Put on some hot porn that turns you both on. Katie, get on her back in missionary. Jon, fuck her pussy with slow, deep strokes while you both watch the screen. Talk about what you see and how it makes you want to fuck each other harder.",
+    "Instant Roleplay — Boss and Secretary: Jon, you're the strict boss. Katie, you're the naughty secretary who needs to keep her job. Katie, bend over the desk. Jon, fuck her hard from behind while she begs you not to fire her.",
+    "Instant Roleplay — Doctor and Patient: Jon, you're the dirty doctor. Katie, lie on her back on the exam table with legs pulled back. Jon, examine her by sliding inside and fucking her while asking clinical questions about how wet and needy she feels.",
+    "Instant Roleplay — Strangers in a Bar: You two just met. Katie, you're the eager girl who followed Jon home. Jon, push her against the wall or onto the bed and fuck her roughly like you're using a stranger you'll never see again.",
+    "Jon, fuck Katie from behind in doggy style while you record a short video of your cock sliding in and out. Stop recording, then switch to missionary and play the video for her to watch while you fuck her. Make her describe what she sees.",
+    "Katie, climb on top of Jon in cowgirl position. While you ride his cock deep and slow, lean down and whisper degrading things into his ear. Keep riding him the whole time.",
+    "Teacher and Student: Jon, you're the strict teacher staying after class. Katie, you're the eager student who needs extra credit. Stay in whatever position you're in and have Katie beg for a better grade while you pound her harder.",
+    "Massage Therapist and Client: Jon, you're the massage therapist who's gone way too far. Katie, you're the client who's too turned on to stop. Keep thrusting and tell her how unprofessional this is while she begs for more.",
+    "Escort and Client: Katie, you're the high-end escort. Jon, you're the client who paid extra for bareback. Stay deep inside her and have her describe exactly what her services include while you fuck her.",
+    "Cop and Caught Speeding Driver: Jon, you're the cop who pulled her over. Katie, you're the driver trying to get out of the ticket. While you fuck her, make her offer sexual favors and beg you to let her go with a warning."
+  ],
+  5: [
+    "Jon, fuck Katie in the missionary position. When you are ready to come pull out and come on her stomach and tits. Katie, think about how sexy this will look — and letting Jon come on you proves that you are his little sexy, slutty little angel.",
+    "Katie, fuck Jon until he is ready to come and then tell him where you want him to blow his load. Wherever you want is absolutely perfect but the decision is all yours.",
+    "Jon, fuck Katie until you are about to come then pull out and come on her neck and tits. Katie, this is going to look so fucking sexy for Jon and lets him know that you're his slutty little wife.",
+    "Katie, get on top of Jon and ride him until you both come.",
+    "Katie, grab the headboard and ride Jon's dick until he's about to come. Jon, when you're ready pull your dick out and come by rubbing your cock between Katie's ass cheeks."
+  ]
+};
+
+const FINISH_COMMANDS = {
+  inside: ["Pull her close and thrust deep -- don't you dare pull out. Fill her completely, every last drop buried inside her where it belongs, holding her hips locked against yours until you're fully drained."],
+  tits:   ["Pull out and stroke yourself to finish -- aim every hot streak across her perfect tits, smearing it in slow with your tip while she watches, then make her rub it into her skin."],
+  ass:    ["Pull out right at the edge and come all over her ass -- thick streaks across both cheeks, spreading it with your hand and giving her a hard slap to watch it drip."],
+  face:   ["Pull out, grab her hair, tilt her chin up -- come across her face while she keeps her eyes open and her mouth ready, then drag your tip across her lips to clean up."],
+  mouth:  ["Grab the back of her head and come straight down her throat -- hold her there until you're completely done, then tilt her chin up and make her show you before she swallows."],
+  back:   ["Pull out and finish across her back -- long slow strokes from her shoulders down to her ass, then drag your hand through it while she stays still."]
+};
+
+const PACKS = {
+  vanilla: {
+    1: [
+      "HIM: Pull her into your lap, facing you. Both hands on her hips. Just hold her there and look at her.",
+      "HER: Climb on top of him while he's sitting and kiss him slowly — no rush, just deep and warm, hands on his face.",
+      "HIM: Kiss her neck just below the ear and stay there — slow, soft, deliberate — until you feel her breathing change.",
+      "HER: Slide your hand up the back of his neck, pull him in, and make out with him like you have nowhere else to be.",
+      "HIM: Undress her slowly — one item at a time. Stop between each one and look at her.",
+      "HER: Lie back and let him kiss every part of your face — forehead, eyelids, jaw, lips — without rushing to your mouth.",
+      "HIM: Press your body against hers from behind, slide your hands under her shirt, and hold her breasts softly while you kiss her neck.",
+      "HER: Straddle his lap, grind against him slowly, and whisper in his ear exactly what you want him to do to you later.",
+      "BOTH: Hold eye contact for a full minute without speaking or looking away. See what happens.",
+      "HIM: Lay her down and kiss from her collarbone to her hip bone — slow, open-mouthed. Don't go further yet."
+    ],
+    3: [
+      "Missionary -- face to face, slow and deep. Look each other in the eyes the entire time.",
+      "Spooning from behind -- stay slow, stay connected, one hand intertwined with theirs.",
+      "Her on top -- she sets the pace, he holds her waist and follows her lead.",
+      "Slide in from behind while spooning, grinding slow -- whisper how good she feels.",
+      "Reverse cowgirl -- slow and deep, his hands on her hips guiding her rhythm.",
+      "Him sitting up, her straddling facing him -- forehead to forehead, moving together.",
+      "Edge-of-the-bed missionary -- her hips at the edge, him standing, deep and slow.",
+      "Prone bone -- her flat, him draped over her, slow grinding thrusts.",
+      "Her legs over his shoulders -- deep, slow, deliberate.",
+      "Standing face to face -- lift one of her legs, slide in slow, hold each other close."
+    ],
+    4: [
+      "No position, no goal. Just move together however feels right -- slow, connected, entirely in the moment.",
+      "Eyes open the entire time -- whatever position, whatever pace, stay locked on each other.",
+      "Slow down to the absolute minimum -- barely moving, just feeling every point of contact.",
+      "Tell each other one thing you love about making love with them while you're still connected.",
+      "Hold each other as close as physically possible -- no space between you at all.",
+      "HIM: Slow down to where you're barely moving — just pressure and warmth, every point of contact. Stay like that.",
+      "Move in total silence -- no words, just sensation and presence.",
+      "Let her be completely in control of pace, depth, and everything. He follows.",
+      "Finish however you both need to -- but keep eye contact through the whole thing.",
+      "After you both come, stay connected and hold each other without moving."
+    ],
+    5: []
+  },
+
+  kinky: {
+    1: [
+      "HIM: Blindfold her with whatever's nearby. Don't explain what comes next.",
+      "HER: Order him to stand still and not move while you do exactly what you want to him.",
+      "HIM: Pin both her wrists above her head against the wall. Hold them there.",
+      "HER: Grab his belt, pull him toward you, and tell him in a low voice exactly what you want.",
+      "HIM: Tie her wrists loosely together with a belt or scarf. Leave her waiting.",
+      "HER: Make him ask permission before he's allowed to touch you anywhere.",
+      "HIM: Grab her chin, tilt her face up, make her hold eye contact while you run your hands wherever you want.",
+      "BOTH: Decide right now who's in charge for the rest of this round. That person gives every instruction.",
+      "HIM: Tell her exactly what you're going to do to her in a low, calm voice. Every detail.",
+      "HER: Grip his hair and pull his mouth to your neck. Tell him exactly how hard to bite."
+    ],
+    2: [
+      "HIM: Blindfold her and run an ice cube slowly from her throat to her inner thigh. Don't tell her where it's going next.",
+      "HIM: Bend her over your knee and spank her — slow and deliberate, one cheek then the other, with a full pause between each one.",
+      "HIM: Edge her with your hand until she's begging, then stop completely. Hold still. Wait. Start again.",
+      "HIM: Tie her wrists behind her back and make her take exactly what you give her — nothing she asks for until you decide.",
+      "HIM: Pin a vibrator against her clit and hold it there while you whisper exactly what you're going to do to her. Don't let her move away from it.",
+      "HIM: Pin her face-down on the bed and tease every sensitive spot with your fingers and mouth until she's completely at your mercy.",
+      "HIM: Spank her and make her count each one out loud. If she loses count or goes quiet, you start over from one.",
+      "HIM: Blindfold her and use only your mouth on her for three full minutes — lips, tongue, teeth. No hands at all.",
+      "HIM: Wrap your hand around her throat lightly and kiss her deep — let her feel exactly who's in control.",
+      "HIM: Tell her she's not allowed to make a sound no matter what. Then do everything you can to make her break that."
+    ],
+    3: [
+      "Doggy -- grab their hair, arch them back, and take complete control of the pace.",
+      "Them on their back, legs pinned back -- you control depth, speed, everything.",
+      "Standing -- push them against the wall and take them from behind, hand at their throat lightly.",
+      "Her on top but she has to keep her hands behind her back the entire time.",
+      "Pin her wrists to the mattress and don't let go -- she takes whatever pace you set.",
+      "Bend her over the edge of the bed, hold her down, and take her from behind.",
+      "Sit in a chair -- she straddles you, but you control her hips completely.",
+      "Missionary with her ankles held together up near her chest -- deep, controlled, completely yours.",
+      "Prone bone -- your full weight on her, her completely pinned with nowhere to go.",
+      "Make her beg for each thrust. She doesn't get the next one until she asks for it."
+    ],
+    4: [
+      "Full restraint -- wrists tied, blindfold on. They take exactly what you give them, nothing more. Make it last.",
+      "Tie her to the headboard, spread her wide, and take your time with every sensitive spot before you even start.",
+      "Complete control -- you choose every position, every pace, every touch. She follows every instruction without question.",
+      "Denial round -- bring her right to the edge repeatedly but don't let her come until you decide she's earned it.",
+      "Sensory overload -- blindfolded and restrained, alternate between ice, your mouth, your hands, and a toy with no warning.",
+      "Make her hold a position -- on her knees, hands behind her back -- while you use her exactly how you want.",
+      "Choke lightly, spank firmly, pull hair -- all three together, sustained, while you take her from behind.",
+      "Have her repeat back everything you say you're going to do to her, then do all of it.",
+      "Put a vibrator on her clit and hold it there while you take her -- she doesn't get to move away from either.",
+      "Finish wherever you want. She already agreed to all of it."
+    ],
+    5: []
+  },
+
+  letsdo: {
+    1: [
+      "HIM: Grab her face and shove your tongue into her mouth. Grip her ass with both hands and pull her into you.",
+      "HER: Push him against the wall, grab his cock through his jeans, and kiss him until he can't think straight.",
+      "HIM: Yank her hair back, bite her neck hard enough to feel it, and grope her tits.",
+      "HER: Reach into his pants and stroke him slowly while you bite his earlobe and breathe into his ear.",
+      "BOTH: Strip each other down to nothing right now. Whoever's slowest does whatever the other one says next.",
+      "HIM: Pin her wrists above her head against the wall and grind your cock against her until she's wet through her underwear.",
+      "HER: Get on your knees, look up at him, and pull his cock out. Kiss the tip slowly. Make him wait.",
+      "HIM: Slide your hand inside her underwear and press two fingers flat against her clit. Don't move them yet. Just hold.",
+      "BOTH: Make out for a full minute -- hands everywhere, nothing off-limits.",
+      "HIM: Bite down her spine while your hand strokes between her legs from behind."
+    ],
+    2: [
+      "HER: Get on your knees and suck his cock -- sloppy, deep, both hands working. Don't stop until he has to pull you off.",
+      "HIM: Sit her on the edge of the bed and eat her out completely -- tongue on her clit, two fingers curled inside her.",
+      "HER: Straddle his face and ride his tongue. Both hands in his hair, pulling him into you.",
+      "HIM: Suck her nipples hard while three fingers pump in and out of her dripping pussy.",
+      "HER: Deep-throat him as far as you can take it. Gag on it. Look him in the eyes while you do.",
+      "HIM: Finger her ass slowly while you lick her clit. One finger, then two. Don't rush.",
+      "HER: Stroke him with a tight grip while you suck and bite his chest and nipples.",
+      "HIM: Bury your face in her pussy and don't stop — tongue on her clit, fingers inside her — until she's squirming and begging you.",
+      "HER: Sit on his cock and grind -- no bouncing, just slow deep circles -- while you suck on his neck.",
+      "BOTH: Sixty-nine. Right now. Neither of you stops until the other one does."
+    ],
+    3: [
+      "HIM: Doggy -- grip her hair, arch her ass up, and pound her from behind without slowing down.",
+      "HER: Get on top and ride him facing forward -- bounce hard and fast, both hands on his chest.",
+      "HIM: Flip her face-first into the wall and take her standing -- one hand on her throat, one spreading her open.",
+      "HER: Reverse cowgirl -- reach back and spread yourself so he can watch his cock disappear into you with every bounce.",
+      "HIM: Missionary -- pin her legs back and go deep and slow until she begs for harder, then give it to her.",
+      "HER: Sit on his face while he's inside you from below -- girl-on-top, you control everything.",
+      "HIM: Pick her up, reposition her exactly how you want her, and take her from behind standing — her hands braced, you controlling everything.",
+      "HIM: Pull out, flip her over, push back in from a new angle -- keep going without missing a thrust.",
+      "HER: Take his hand and put it exactly where you need it while you ride him.",
+      "HIM: Spoon from behind -- one hand on her clit, cock buried deep, grind slow until you're both shaking."
+    ],
+    4: [
+      "HIM: Prone bone -- full weight on her, she can't move, short hard thrusts straight into her ass or pussy.",
+      "HER: Get on all fours and push back onto him with every thrust. Match him. Don't let him set the pace.",
+      "HIM: Reach around from doggy and finger her ass while you pound her pussy. Both holes at once.",
+      "HER: Pin his hands above his head and ride him until he comes -- he's not allowed to move.",
+      "HIM: Pull out, push the head of your cock against her asshole, and ease in slowly while she pushes back.",
+      "HER: Squat over him, sink down onto his cock in her ass, and ride it slow while you rub your own clit.",
+      "HIM: Grab her throat lightly, lock eyes, and tell her exactly what you're doing and what comes next.",
+      "BOTH: Use a toy on her clit while he's inside her. Both stimulations at once until she comes.",
+      "HIM: Edge her with your fingers until she's begging to come -- then stop and push inside her instead.",
+      "HER: Make him edge himself while you watch -- stroke it and stop, stroke it and stop -- until you say he can finish."
+    ],
+    5: [
+      "HIM: Pull out and come on her face -- hold her chin up, make her keep her eyes open. Cover her cheeks, her lips, her chin. Every single drop. Then drag your tip slowly across her lips.",
+      "HIM: Don't pull out. Drive in deep right when you're about to come and stay completely buried -- grind through every pulse until there's nothing left inside you.",
+      "HIM: Pull out and come all over her tits -- both of them, drench them -- then rub it slowly into her skin with both hands while she watches.",
+      "HIM: Come on her ass -- aim thick across both cheeks -- then immediately press your cock against her asshole while it's wet and push until she takes the head. Hold it there while you rub her clit.",
+      "HER: Take him in your mouth right as he's finishing -- both hands holding his ass, pull him in deep, swallow every drop. Then look up at him."
+    ]
+  },
+  filthy: {
+    1: [
+      "HIM: Grab her hair and shove your tongue into her mouth. Don't be gentle.",
+      "HER: Tell him in graphic detail exactly what you're going to do to him tonight. Make him hard with your words.",
+      "HIM: Pin her down and grind your cock against her through your clothes until the fabric is soaked.",
+      "HIM: Bite her neck hard enough to leave a mark. Then bite the other side.",
+      "HER: Touch yourself in front of him. Make him watch. Don't let him join yet.",
+      "HIM: Tear or roughly remove one item of her clothing. Your choice which.",
+      "HER: Grab his cock through his pants, squeeze hard, and tell him exactly what you're going to do with it.",
+      "BOTH: Strip completely right now. First one done gets to give the next instruction.",
+      "HIM: Spread her out on the bed, hold her wrists, and kiss down her body without touching where she wants.",
+      "HER: Grab his hair, pull his face to yours, and tell him he's going to do exactly what you say."
+    ],
+    2: [
+      "Force their head down and make them gag on your cock -- sloppy, messy, relentless.",
+      "Sit on his face and ride it until you're done. He doesn't get to breathe easy.",
+      "Fist their hair and use their mouth exactly how you want it.",
+      "Ram a toy into her while she sucks you off. Don't be gentle.",
+      "Eat her out filthy -- loud, sloppy, licking everything. Make her scream.",
+      "Spit on their body, spread it around, tell them what a filthy thing they are for loving it.",
+      "Make her deepthroat until her eyes water, then pull her up by the hair and kiss her hard.",
+      "Finger her roughly while she's on her knees in front of you -- don't let her touch you yet.",
+      "Slap her ass until she's dripping, then use two fingers to make sure she is.",
+      "Tit fuck with lube -- make her keep eye contact and her mouth open the whole time."
+    ],
+    3: [
+      "Filthy doggy -- pull hair back, slap ass raw, talk dirty the entire time without stopping.",
+      "Pin them face down completely flat, hold them still and pound them until they're sobbing into the mattress.",
+      "Ride him reverse cowgirl -- reach back and choke him lightly while you bounce. Watch his eyes.",
+      "Missionary but talk filthy into her ear the entire time without stopping.",
+      "Standing against the wall -- one hand on her throat, one spreading her open.",
+      "Her on top but you're dictating every move -- faster, slower, deeper on command.",
+      "Prone bone -- full weight on her, pull her hair back so you can growl in her ear.",
+      "Legs over shoulders -- pound deep and watch her face the whole time.",
+      "Sit on the edge, her straddling facing away -- reach around and own her clit while she bounces.",
+      "Spooning from behind -- fingers on her clit, cock in her ass, mouth on her neck."
+    ],
+    4: [
+      "Stretch her ass open with a toy while you rail her pussy. Tell her exactly how good she looks taking both. Don't stop until she's shaking and completely wrecked.",
+      "Blindfold, restrain, and use every toy you have on her -- one after another -- until she's begging for your cock.",
+      "Full degradation round -- tell her exactly what she is and what she's for. She agrees with everything.",
+      "Double stuffed -- toy in her ass while you're in her pussy. Make her ride both at the same time.",
+      "Film it -- or pretend you are. Tell her how it looks while she takes it.",
+      "Edge her with a vibrator ten times without letting her come, then let her finish screaming.",
+      "Make her describe out loud what you're doing to her while you do it. Every detail.",
+      "Switch holes mid-session. Make it deliberate, make it dirty, make her ask for each one.",
+      "Finish on her -- face, tits, wherever -- while she looks up at you. Then make her clean it up.",
+      "Do whatever you want to her for ten full minutes. No limits, no interruptions."
+    ],
+    5: []
+  },
+
+  round2: {
+    1: [
+      "HER: Walk over to him wearing nothing or almost nothing, press your body against his from behind, and just breathe on his neck. Don't say anything.",
+      "HIM: Pull her into your lap facing you. No rush. Just hold her there with your hands on her hips.",
+      "BOTH: Make out slowly -- unhurried, like you have nowhere to be. Hands start gentle.",
+      "HER: Trace your fingers down his chest and stomach and stop at his waistband. Hold there.",
+      "HIM: Lie her down and kiss from her collarbone to her hip bone without going further.",
+      "BOTH: Undress each other slowly. The goal is to remind each other what you already know is there.",
+      "HIM: Pull her close from behind, slide your hand up under her shirt, and just hold her breast softly.",
+      "HER: Sit in his lap and grind against him slowly while you kiss him. Don't rush this.",
+      "HIM: Kiss down her spine while she's lying on her stomach. Take your time.",
+      "BOTH: Whisper one thing you loved about earlier tonight. Then one thing you want to do again."
+    ],
+    2: [
+      "HIM: Go down on her slowly -- no urgency, just enjoy her. She already came once. Make it build differently this time.",
+      "HER: Stroke him back to full hardness with your hand while you kiss his chest and stomach.",
+      "HIM: Finger her slowly with two fingers while you watch her face. Make her tell you when she's ready.",
+      "HER: Straddle his face and let him eat you out until you're dripping again.",
+      "HIM: Suck her nipples back to attention -- soft at first, then harder as she responds.",
+      "HER: Take him in your mouth slowly -- not to finish, just to get him there. Tease.",
+      "HIM: Run your thumb over her clit in slow circles while you kiss her throat. Don't speed up.",
+      "HER: Grind your bare pussy against his cock without taking him in -- just the friction, just the warmth.",
+      "HIM: Use a toy on her clit while you kiss her and watch her come back to life.",
+      "BOTH: Touch each other at the same time -- her stroking him, him fingering her -- until neither of you can wait."
+    ],
+    3: [
+      "HIM: Slide in slow from behind while she's on her side -- no sudden moves. Just ease in and hold deep.",
+      "HER: Get on top and start slow -- long, grinding circles instead of bouncing. Feel your way back into it.",
+      "HIM: Missionary with your full weight on her -- slow, deep, face to face. No rushing to finish.",
+      "HIM: Pull out slowly, flip her onto her back, slide back in missionary — face to face, forehead to forehead. Go slow.",
+      "HIM: Spoon from behind with one hand on her clit -- grind together until you find the rhythm again.",
+      "HER: Reverse cowgirl -- slow and deep at first, then pick up when your body tells you to.",
+      "HIM: Stand her at the edge of the bed and take her from behind while you reach around for her clit.",
+      "BOTH: Keep eye contact the entire time. Whatever position, whatever pace -- don't look away.",
+      "HIM: Pull out and use your fingers and mouth until she comes, then slide back in.",
+      "HER: Tell him exactly how you want it this time. Be specific. Make him do it exactly that way."
+    ],
+    4: [
+      "HIM: This time you go harder than the first round -- she already knows what you're capable of. Show her the difference.",
+      "HER: Take control completely -- get on top, set the pace, and don't let him change it until you're done.",
+      "HIM: Pin her wrists and go deep and slow until she can't stop moving -- then give her what she's asking for.",
+      "BOTH: No holding back this time. Louder, harder, more -- everything you were polite about the first time.",
+      "HIM: Flip her over mid-thrust, change the angle completely, and keep going without missing a beat.",
+      "HER: Ride him with a toy between you -- you control both at the same time.",
+      "HIM: Pull her hair back, reach around for her clit, and tell her this one's going to be better than the last.",
+      "HIM: Flip her onto her stomach, slide in from behind with your full weight on her, and grind slow and deep while you bite her neck.",
+      "HIM: Edge her once before you let either of you finish -- make this one last longer.",
+      "HER: Be louder than you were the first time. Don't hold it back."
+    ],
+    5: [
+      "HIM: Pull out and come on her tits -- both of them, slow strokes while she watches. Then rub it in with your hands.",
+      "HIM: Come inside her this time -- drive in deep right when you're about to finish and hold there until it's done.",
+      "HIM: Come on her face -- chin up, eyes open, every drop. Then kiss her.",
+      "HIM: Pull out and finish across her ass -- spread it with your palm while she stays still.",
+      "HER: Take him in your mouth right as he finishes -- pull him in deep and swallow every drop. Then look up at him."
+    ]
+  }
+};
+
+// Vanilla round V - slow intimate finish
+PACKS.vanilla[5] = [
+  "Missionary, eyes locked the entire time -- slow deep thrusts that build until you finish buried completely inside her. Don't look away.",
+  "She rides you to the end -- slow and deep, her hands on your chest, until she feels you finish inside her. She stays down until it's done.",
+  "Pull out and finish across her chest -- kiss her while you do it. Keep your forehead against hers.",
+  "He comes in her mouth -- she looks up at him the entire time, swallows, then he pulls her up and kisses her."
+];
+
+// Kinky round V - commanding finish
+PACKS.kinky[5] = [
+  "Tie her hands behind her back, make her kneel, and come across her face. She keeps her eyes open and her mouth ready the whole time.",
+  "Pin her face-down, finish deep inside her, and hold her completely still with your full weight until you're done. She doesn't move.",
+  "Pull her head back by the hair, come down her throat, then hold her chin up and make her show you before she swallows.",
+  "Edge her with a toy until she's begging, then pull it away and come all over her ass. Make her stay bent over while it drips."
+];
+
+// Let's Do This round V - fast finish
+PACKS.letsdo[5] = [
+  "Jon, pull out and come on her tits — stroke hard across both of them while she watches. Then rub it in with your hands.",
+  "Don't pull out. Slam in deep right when you're about to finish and stay completely buried — grind through every pulse until you're drained.",
+  "Jon, pull out and come on her face — chin up, eyes open. Every drop. Then drag your tip slowly across her lips.",
+  "Katie, take him in your mouth right as he's finishing — both hands pulling him deep, swallow every drop, then look up at him.",
+  "Jon, grab her hips and finish in whatever position you're in — hardest, deepest, loudest you've got. Don't hold back."
+];
+
+// Filthy round V - explicit finish
+PACKS.filthy[5] = [
+  "Pull out at the last second and come across her face -- both cheeks, her lips, her chin. Make her keep her eyes open and hold still for every drop.",
+  "Grab the back of her head and push all the way down her throat -- hold her there through every pulse until you're completely drained. Make her show you before she swallows.",
+  "Come all over her tits -- drench them, then rub it into her skin with your hands while she watches, then make her lick your fingers clean.",
+  "Finish deep inside her -- slam in hard at the end, stay buried and grinding until you've given her every last drop. She doesn't get to pull away.",
+  "Pull out and come across her ass -- spread it with both hands, slap it in, tell her what she looks like."
+];
+
+// ── NAVIGATION ──
+
+// ── SCREEN WAKE LOCK ──
+let wakeLock = null;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => {
+      // Re-acquire if game is still active
+      if (document.getElementById('screen-game').classList.contains('active')) {
+        setTimeout(requestWakeLock, 1000);
+      }
+    });
+  } catch(e) {}
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+// Re-acquire if user returns to tab/app
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (document.getElementById('screen-game').classList.contains('active')) {
+      requestWakeLock();
+    }
+  }
+});
+
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── PREFS ──
+function goToP1Prefs() {
+  const n1 = document.getElementById('p1name').value.trim() || 'Player One';
+  document.getElementById('p1prefsTitle').textContent = n1 + "'s Preferences";
+  const g1 = document.querySelector('input[name="p1gender"]:checked')?.value;
+  const ft = document.getElementById('p1finishTitle');
+  if (ft) ft.textContent = 'Where does he finish?';
+  goTo('screen-p1prefs');
+}
+function goToP2Prefs() {
+  const n2 = document.getElementById('p2name').value.trim() || 'Player Two';
+  document.getElementById('p2prefsTitle').textContent = n2 + "'s Preferences";
+  const g2 = document.querySelector('input[name="p2gender"]:checked')?.value;
+  const ft = document.getElementById('p2finishTitle');
+  if (ft) ft.textContent = 'Where does he finish?';
+  goTo('screen-p2prefs');
+}
+function syncAndContinue() {
+  const g1 = document.querySelector('input[name="p1gender"]:checked')?.value;
+  const herPlayer = g1 === 'female' ? 'p1' : 'p2';
+  finishPrefs = [...document.querySelectorAll('input[name="' + herPlayer + 'finish"]:checked')].map(c => c.value);
+
+  // Find shared prefs
+  const p1 = [...document.querySelectorAll('input[name="p1prefs"]:checked')].map(c => c.value);
+  const p2 = [...document.querySelectorAll('input[name="p2prefs"]:checked')].map(c => c.value);
+  sharedPrefs = p1.filter(v => p2.includes(v));
+
+  // Also compare finish prefs from both players
+  const p1finish = [...document.querySelectorAll('input[name="p1finish"]:checked')].map(c => c.value);
+  const p2finish = [...document.querySelectorAll('input[name="p2finish"]:checked')].map(c => c.value);
+  const allFinish = [...new Set([...p1finish, ...p2finish])];
+  finishPrefs = allFinish;
+  const sharedFinish = p1finish.filter(v => p2finish.includes(v));
+
+  showMatchReveal(sharedPrefs, sharedFinish);
+}
+
+let sharedPrefs = [];
+
+const PREF_LABELS = {
+  hair_pulling: 'Hair Pulling',
+  blindfolds: 'Blindfolds',
+  spanking: 'Spanking',
+  choking: 'Light Choking',
+  dirty_talk: 'Dirty Talk',
+  edging: 'Teasing & Edging',
+  restraint: 'Restraint',
+  toys: 'Toys',
+  anal: 'Anal',
+  exhibitionism: 'Exhibitionism',
+  degradation: 'Degradation',
+  tit_fucking: 'Tit Fucking',
+  face_sitting: 'Face Sitting',
+  throat_fucking: 'Throat Fucking',
+  double_penetration: 'Double Penetration',
+  porn: 'Watching Porn'
+};
+
+const PREF_REVEAL_LINES = {
+  hair_pulling: 'Hair pulling... you both want that.',
+  blindfolds: 'Blindfolds... oh, interesting.',
+  spanking: 'Spanking... noted.',
+  choking: 'Light choking... both of you.',
+  dirty_talk: 'Dirty talk... consider it done.',
+  edging: 'Teasing and edging... you sadists.',
+  restraint: 'Restraint... someone wants to be held down.',
+  toys: 'Toys... good. Bring them.',
+  anal: 'Anal... you both said yes to that.',
+  exhibitionism: 'Exhibitionism... you want to be seen.',
+  degradation: 'Degradation... you both checked that box.',
+  tit_fucking: 'Tit fucking... yes.',
+  face_sitting: 'Face sitting... both of you want that.',
+  throat_fucking: 'Throat fucking... neither of you hesitated.',
+  double_penetration: 'Double penetration... stretched full.',
+  porn: 'Watching porn together... dirty.'
+};
+
+// Preference-specific bonus cards added to Standard deck
+const PREF_BONUS_CARDS = {
+  hair_pulling: {
+    level: 2,
+    cards: [
+      "HIM: Grab a fistful of her hair, yank her head back until her throat is exposed, and bite down her neck while she arches into you.",
+      "HER: Grip his hair with both hands and ride his face exactly the way you want it. Pull harder when he does it right."
+    ]
+  },
+  blindfolds: {
+    level: 2,
+    cards: [
+      "HIM: Blindfold her and make her guess what you're touching her with -- fingers, lips, tongue, something cold. Don't tell her what's coming.",
+      "HER: Blindfold him and tease him with your mouth for as long as you want. He can't touch you until you say."
+    ]
+  },
+  spanking: {
+    level: 2,
+    cards: [
+      "HIM: Bend her over and spank her until her cheeks are flushed -- alternate between cheeks, slow and deliberate, spreading her open between every slap.",
+      "HER: Put him over your knee and spank him. Slow. Make him count."
+    ]
+  },
+  choking: {
+    level: 3,
+    cards: [
+      "HIM: Wrap one hand lightly around her throat from behind while you're inside her -- not tight, just present. Feel her pulse while you grind deep.",
+      "HER: Pin him down, wrap your hand around his throat lightly, and ride him while you look him in the eyes."
+    ]
+  },
+  dirty_talk: {
+    level: 2,
+    cards: [
+      "BOTH: Take turns narrating exactly what's happening in graphic detail as it happens. Don't stop talking.",
+      "HIM: Tell her in explicit detail exactly how she feels right now and what you're going to do next. Don't soften a single word."
+    ]
+  },
+  edging: {
+    level: 3,
+    cards: [
+      "HER: Edge him three times with your hand -- bring him to the absolute brink and stop cold each time. The fourth time, you decide if he gets to finish.",
+      "HIM: Use two fingers to bring her right to the edge, then pull them out completely. Wait. Watch her. Then start again."
+    ]
+  },
+  restraint: {
+    level: 3,
+    cards: [
+      "HIM: Tie her wrists to the headboard with a belt. She takes whatever you give her. She doesn't get to move them until you say.",
+      "HER: Sit on his hands and pin them under your thighs while you ride him. He doesn't get to use them."
+    ]
+  },
+  toys: {
+    level: 3,
+    cards: [
+      "HIM: Use a vibrator on her clit while you're inside her -- both sensations at once, sustained, until she comes around you.",
+      "HER: Use a toy on yourself while he watches and is not allowed to touch you or himself."
+    ]
+  },
+  anal: {
+    level: 4,
+    cards: [
+      "HIM: Lube two fingers and work them slowly into her ass while you eat her pussy -- stretch her open until she's pushing back onto your hand.",
+      "HIM: Ease your cock into her ass from behind -- slow, full length, hold deep -- then reach around and rub her clit until she comes with you buried inside her."
+    ]
+  },
+  exhibitionism: {
+    level: 3,
+    cards: [
+      "BOTH: Find a window, a mirror, or an open door. Position yourselves so you could be seen. Keep going.",
+      "HIM: Make her watch herself in the mirror while you take her from behind. Make her keep her eyes open."
+    ]
+  },
+  degradation: {
+    level: 3,
+    cards: [
+      "HIM: Tell her exactly what she is and what she's for while you're inside her. She agrees with every word out loud.",
+      "HER: Tell him he's going to do whatever you say tonight and he's going to thank you for it. Mean it."
+    ]
+  },
+  tit_fucking: {
+    level: 2,
+    cards: [
+      "HIM: Drench her tits in lube, slide your cock between them, and thrust up while she squeezes them tight around your shaft. She licks the tip every time it appears."
+    ]
+  },
+  face_sitting: {
+    level: 2,
+    cards: [
+      "HER: Sit on his face and grind until you come. Both hands in his hair. He doesn't come up until you're done.",
+      "HIM: Pull her down onto your face by her hips and eat her from below while she braces against the wall."
+    ]
+  },
+  throat_fucking: {
+    level: 2,
+    cards: [
+      "HIM: Grip her hair and fuck her throat -- set the pace, set the depth. She takes it.",
+      "HER: Take him as deep as you can and hold it there. Gag on it. Let him hear it."
+    ]
+  },
+  double_penetration: {
+    level: 4,
+    cards: [
+      "HIM: She rides your cock while you slowly work a toy into her ass until both are inside her at once -- hold her hips and feel her take both.",
+      "BOTH: Her on top with his cock in her pussy, a thick toy in her ass. She rides both at once while he holds her hips and tells her how she looks."
+    ]
+  },
+  porn: {
+    level: 3,
+    cards: [
+      "BOTH: Put on the filthiest porn you can find. Whatever position they're in — get into it. Stay there while it's on screen.",
+      "HIM: Stay inside her from behind while you both watch porn -- don't thrust, just grind slow while the video plays. Match the energy on screen."
+    ]
+  }
+};
+
+const FINISH_LABELS = {
+  inside: 'Inside her', tits: 'On her tits', ass: 'On her ass',
+  face: 'On her face', mouth: 'In her mouth', back: 'On her back'
+};
+
+function showMatchReveal(matches, finishMatches) {
+  finishMatches = finishMatches || [];
+  goTo('screen-reveal');
+  const header = document.getElementById('revealHeader');
+  const lineEl = document.getElementById('revealLine');
+  const matchesDiv = document.getElementById('revealMatches');
+  const matchList = document.getElementById('revealMatchList');
+  const btnDiv = document.getElementById('revealBtn');
+  const noMatchDiv = document.getElementById('revealNoMatch');
+
+  matchesDiv.style.display = 'none';
+  btnDiv.style.display = 'none';
+  noMatchDiv.style.display = 'none';
+  lineEl.textContent = '';
+  matchList.innerHTML = '';
+
+  if (matches.length === 0 && finishMatches.length === 0) {
+    header.textContent = 'No matches.';
+    lineEl.textContent = '';
+    setTimeout(() => { noMatchDiv.style.display = 'block'; }, 800);
+    return;
+  }
+
+  header.textContent = 'You both want the same things.';
+  lineEl.style.opacity = '0';
+
+  let i = 0;
+  let revealTimer = null;
+
+  function showNext() {
+    if (i >= matches.length) {
+      // Show all matched pills
+      matches.forEach(m => {
+        const pill = document.createElement('div');
+        pill.style.cssText = 'padding:7px 16px; border:1px solid var(--gold); border-radius:30px; font-size:0.85rem; color:var(--gold); background:rgba(255,217,122,0.1);';
+        pill.textContent = PREF_LABELS[m] || m;
+        matchList.appendChild(pill);
+      });
+      matchesDiv.style.display = 'block';
+      lineEl.style.opacity = '0';
+      if (finishMatches.length > 0) {
+        // Reveal finish match narratively after a beat
+        setTimeout(() => {
+          lineEl.style.opacity = '0';
+          const finishNames = finishMatches.map(m => FINISH_LABELS[m] || m).join(' and ');
+          const line = finishMatches.length === 1
+            ? 'And you both agree on where he finishes. ' + FINISH_LABELS[finishMatches[0]] + '. I will remember that.'
+            : 'And for the finish \u2014 you both want ' + finishNames + '. That is going in the deck.';
+          setTimeout(() => { lineEl.textContent = line; lineEl.style.opacity = '1'; }, 300);
+          setTimeout(() => { btnDiv.style.display = 'flex'; }, 2200);
+        }, 800);
+      } else {
+        setTimeout(() => { btnDiv.style.display = 'flex'; }, 600);
+      }
+
+      // Speak the summary
+      if (voiceEnabled) {
+        const matchNames = matches.map(m => PREF_LABELS[m] || m).join(', ');
+        const speech = 'You both said yes to ' + matchNames + '. I love that. These are going in the deck.';
+        setTimeout(() => {
+          if (elKey) playElevenLabs(speech, elKey, elVoiceId, elStability, elStyle, elSpeed).catch(()=>{});
+          
+        }, 300);
+      }
+      return;
+    }
+
+    const pref = matches[i++];
+    const revealLine = PREF_REVEAL_LINES[pref] || (PREF_LABELS[pref] + '... both of you.');
+    lineEl.style.opacity = '0';
+    setTimeout(() => {
+      lineEl.textContent = revealLine;
+      lineEl.style.opacity = '1';
+    }, 300);
+    revealTimer = setTimeout(showNext, 2000);
+  }
+
+  // Tap screen to advance
+  document.getElementById('screen-reveal').onclick = () => {
+    if (revealTimer) clearTimeout(revealTimer);
+    showNext();
+  };
+
+  setTimeout(showNext, 600);
+}
+
+// ── LAUNCH ──
+function launchGame() {
+  const n1 = document.getElementById('p1name').value.trim() || 'Player One';
+  const n2 = document.getElementById('p2name').value.trim() || 'Player Two';
+  const g1 = document.querySelector('input[name="p1gender"]:checked')?.value;
+  herName = g1 === 'female' ? n1 : n2;
+  hisName = g1 === 'female' ? n2 : n1;
+
+  elKey       = document.getElementById('elApiKey').value.trim().replace(/[^ -~]/g, '');
+  elVoiceId   = document.getElementById('elVoice').value;
+  elStability = parseFloat(document.getElementById('elStability').value);
+  elStyle     = parseFloat(document.getElementById('elStyle').value);
+  elSpeed     = parseFloat(document.getElementById('elSpeed').value);
+  levelDuration[1] = parseInt(document.getElementById('timer1').value);
+  levelDuration[2] = parseInt(document.getElementById('timer2').value);
+  levelDuration[3] = parseInt(document.getElementById('timer3').value);
+  levelDuration[4] = parseInt(document.getElementById('timer4').value);
+  levelDuration[5] = parseInt(document.getElementById('timer5').value);
+
+  voiceEnabled = document.getElementById('voiceToggle').checked;
+
+  if (!elKey) document.getElementById('voiceNote').textContent = 'No API key -- voice off';
+  else document.getElementById('voiceNote').textContent = 'Voice: ' + document.getElementById('elVoice').selectedOptions[0].text.split(' --')[0] + ' (ElevenLabs)';
+
+  const gt = document.getElementById('game-title'); if(gt) gt.textContent = herName + ' & ' + hisName;
+  const rt = document.getElementById('ready-title');
+  if (rt) rt.textContent = herName + ' & ' + hisName + ' -- Are You Ready?';
+
+  goTo('screen-packs');
+}
+
+// ── AI INTRO (Zelda style) ──
+let introTimer = null;
+let introIdx = 0;
+
+function showAIIntro() {
+  const pack = activePack;
+  const INTRO_LINES = {
+    standard: [
+      herName + ' and ' + hisName + '.', 'Oh my god.', herName + '.', 'Look at you.', 'Seriously.',
+      'You are absolutely gorgeous tonight.', hisName + ' -- do you see her right now?', 'Because I do.',
+      "Okay. Here's how this works.", 'Five rounds.', 'Each one hotter than the last.',
+      'You draw a card.', 'You do exactly what it says.', 'No skipping.', 'No overthinking.',
+      'Round I -- all clothes on. For now.', 'Round II -- nothing on.',
+      "Round III -- you're having sex.", 'Round IV -- no limits.', 'Round V -- the finish.',
+      herName + ', I already know exactly what you want.', hisName + ', try to keep up.', "Let's go."
+    ],
+    vanilla: [
+      herName + '.', 'And ' + hisName + '.', 'Tonight is about you two.', 'Just you two.',
+      'Slow down.', 'Feel everything.', 'Five rounds.', 'No rushing.', 'No agenda.',
+      'Just skin, and breath, and each other.',
+      'Round I -- still dressed. Barely touching.', 'Round II -- nothing between you.',
+      "Round III -- as close as two people can be.", 'Round IV -- deeper than that.', 'Round V -- all the way.',
+      herName + '...', 'He already knows how lucky he is.', "Let's begin."
+    ],
+    kinky: [
+      hisName + '.', herName + '.', 'Someone is going to be in charge tonight.',
+      'And someone is going to love it.', 'Five rounds.', 'Each one takes a little more.',
+      'The cards give the orders.', 'You follow them.', 'No negotiating.', 'No hesitation.',
+      'Round I -- the tease.', 'Round II -- the command.', 'Round III -- obedience.',
+      'Round IV -- no limits.', 'Round V -- the finish.',
+      herName + '...', 'I think you already know which one you are.', "Let's find out."
+    ],
+    letsdo: [
+      'Okay.', 'No time for the slow stuff.', herName + ' and ' + hisName + '.',
+      'You know what you want.', "Let's get there.",
+      'Fast rounds.', 'Short commands.', 'Do what it says.', 'Move.',
+      'Round I -- hands everywhere.', 'Round II -- mouths everywhere.',
+      'Round III -- sex.', 'Round IV -- harder.', 'Round V -- finish.', "Let's go."
+    ],
+    filthy: [
+      hisName + '.', herName + '.', 'Tonight you do whatever you want to each other.',
+      'Nothing is off the table.', 'Five rounds.', 'Each one more explicit than the last.',
+      'You will do exactly what the card says.', 'No softening it.', 'No skipping.',
+      'Round I -- the appetizer.', 'Round II -- it gets filthy.',
+      "Round III -- you're fucking.", 'Round IV -- all of it.', 'Round V -- the finish.',
+      herName + '...', 'I already know what you checked.', "Let's be honest about what tonight is."
+    ],
+    round2: [
+      herName + ' and ' + hisName + '.', 'You already had sex tonight.', 'And yet.',
+      'Here you are.', 'That says something.', 'Round Two is slower.',
+      "You already know each other's body.", 'Use that.', 'Five rounds.', 'Back to the beginning.',
+      'But better this time.', herName + '...', 'He wants you again.', 'Let him show you.',
+      "Let's go again."
+    ]
+  };
+
+  const lines = INTRO_LINES[pack] || INTRO_LINES.standard;
+
+  const lineEl = document.getElementById('aiIntroLine');
+  const btnEl  = document.getElementById('aiIntroBtn');
+  const skipBtn = document.getElementById('aiSkipBtn');
+  lineEl.textContent = '';
+  btnEl.style.display = 'none';
+  introIdx = 0;
+
+  function showLine(idx) {
+    if (idx >= lines.length) {
+      btnEl.style.display = 'flex';
+      if (skipBtn) skipBtn.style.display = 'none';
+      return;
+    }
+    introIdx = idx;
+    lineEl.style.opacity = '0';
+    setTimeout(() => {
+      lineEl.textContent = lines[idx];
+      lineEl.style.opacity = '1';
+      if (skipBtn) skipBtn.style.display = 'inline-block';
+    }, 300);
+    introTimer = setTimeout(() => showLine(idx + 1), 1200);
+  }
+  showLine(0);
+}
+function skipIntro() {
+  if (introTimer) clearTimeout(introTimer);
+  const lineEl = document.getElementById('aiIntroLine');
+  const btnEl  = document.getElementById('aiIntroBtn');
+  const skipBtn = document.getElementById('aiSkipBtn');
+  lineEl.style.opacity = '1';
+  lineEl.textContent = "Let's go.";
+  if (btnEl) btnEl.style.display = 'flex';
+  if (skipBtn) skipBtn.style.display = 'none';
+}
+
+function introTap() {
+  if (introTimer) clearTimeout(introTimer);
+  const lineEl = document.getElementById('aiIntroLine');
+  const btnEl  = document.getElementById('aiIntroBtn');
+  introIdx++;
+  if (introIdx >= 26) {
+    btnEl.style.display = 'flex';
+    return;
+  }
+  // Re-run showAIIntro from current index via the global
+  showAIIntro_fromIdx(introIdx);
+}
+
+function showAIIntro_fromIdx(startIdx) {
+  const lines2 = [
+    herName + ' and ' + hisName + '.',
+    'Oh my god.',
+    herName + '.',
+    'Look at you.',
+    'Seriously.',
+    'You are absolutely gorgeous tonight.',
+    hisName + ' -- do you see her right now?',
+    'Because I do.',
+    "Okay. Here's how this works.",
+    'Five rounds.',
+    'Each one hotter than the last.',
+    'You draw a card.',
+    'You do exactly what it says.',
+    'No skipping.',
+    'No overthinking.',
+    'Round I -- all clothes on. For now.',
+    'Round II -- nothing on.',
+    "Round III -- you're having sex.",
+    'Round IV -- no limits.',
+    'Round V -- the finish.',
+    herName + ', I already know exactly what you want.',
+    hisName + ', try to keep up.',
+    'Pick your pack.',
+    "Let's go."
+  ];
+
+  const lineEl2 = document.getElementById('aiIntroLine');
+  const btnEl2  = document.getElementById('aiIntroBtn');
+  lineEl2.textContent = '';
+  btnEl2.style.display = 'none';
+  introIdx = 0;
+
+  function showLine2(idx) {
+    if (idx >= lines2.length) { btnEl2.style.display = 'flex'; const sb=document.getElementById('aiSkipBtn'); if(sb) sb.style.display='none'; return; }
+    introIdx = idx;
+    lineEl2.style.opacity = '0';
+    setTimeout(() => { lineEl2.textContent = lines2[idx]; lineEl2.style.opacity = '1';  }, 300);
+    introTimer = setTimeout(() => showLine2(idx + 1), 1200);
+  }
+  showLine2(0);
+}
+// ── AUDIO UNLOCK (iOS requires gesture + resume + silent buffer) ──
+let _audioCtx = null;
+let _audioUnlocked = false;
+
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+
+function keepAudioAlive() {
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    // Play a silent buffer to fully unlock on iOS
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    _audioUnlocked = true;
+  } catch(e) {}
+}
+
+// Unlock on every user gesture - iOS needs this
+function _unlockAudio() {
+  keepAudioAlive();
+  // Also unlock HTML5 Audio by creating and immediately pausing a dummy element
+  if (!_audioUnlocked) {
+    try {
+      const dummy = new Audio();
+      dummy.play().then(() => { dummy.pause(); _audioUnlocked = true; }).catch(() => {});
+    } catch(e) {}
+  }
+}
+document.addEventListener('touchstart', _unlockAudio, { passive: true });
+document.addEventListener('touchend', _unlockAudio, { passive: true });
+document.addEventListener('click', _unlockAudio, { passive: true });
+
+function playChime() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    // Distinct rising fanfare: G4 B4 D5 G5, resolve down to G4
+    const melody = [
+      { freq: 392.00, t: 0.00, dur: 0.18, vol: 0.22, type: 'triangle' },
+      { freq: 493.88, t: 0.20, dur: 0.18, vol: 0.22, type: 'triangle' },
+      { freq: 587.33, t: 0.40, dur: 0.18, vol: 0.25, type: 'triangle' },
+      { freq: 783.99, t: 0.62, dur: 0.55, vol: 0.28, type: 'sine'     },
+      { freq: 392.00, t: 1.30, dur: 0.45, vol: 0.18, type: 'sine'     },
+    ];
+    melody.forEach(function(n) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = n.type;
+      osc.frequency.value = n.freq;
+      const start = ctx.currentTime + n.t;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(n.vol, start + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + n.dur + 0.3);
+      osc.start(start);
+      osc.stop(start + n.dur + 0.35);
+    });
+    // Auto-advance after melody finishes + brief pause
+    setTimeout(function() { keepAudioAlive(); drawCommand(); }, 2200);
+  } catch(e){ console.log('chime error', e); }
+}
+
+// ── VOICE ──
+// ── PACK SELECT ──
+function selectPack(packName) {
+  activePack = packName;
+  if (packName === 'letsdo') {
+    ROUND_LIMIT = { 1: 5, 2: 3, 3: 2, 4: 999, 5: 1 };
+  } else {
+    ROUND_LIMIT = { 1: 10, 2: 6, 3: 3, 4: 999, 5: 1 };
+  }
+  if (packName === 'standard') {
+    for (let lvl = 1; lvl <= 5; lvl++) COMMANDS[lvl] = [...STANDARD_COMMANDS[lvl]];
+  } else {
+    for (let lvl = 1; lvl <= 5; lvl++) COMMANDS[lvl] = [...(PACKS[packName][lvl] || [])];
+  }
+  // Inject pref bonus cards into the right levels
+  if (sharedPrefs.length > 0) {
+    sharedPrefs.forEach(pref => {
+      const bonus = PREF_BONUS_CARDS[pref];
+      if (bonus && bonus.cards) {
+        const lvl = bonus.level;
+        if (COMMANDS[lvl]) COMMANDS[lvl] = [...COMMANDS[lvl], ...bonus.cards];
+      }
+    });
+  }
+
+  if (finishPrefs.length > 0) {
+    const extras = [];
+    finishPrefs.forEach(p => { if (FINISH_COMMANDS[p]) extras.push(...FINISH_COMMANDS[p]); });
+    COMMANDS[5] = [...COMMANDS[5], ...extras];
+  }
+  if (!COMMANDS[5] || COMMANDS[5].length === 0) COMMANDS[5] = [...STANDARD_COMMANDS[5]];
+
+  // ── PREFERENCE FILTERING ──
+  // Remove commands referencing kinks NEITHER player selected
+  const allPlayerPrefs = new Set([
+    ...[...document.querySelectorAll('input[name="p1prefs"]:checked')].map(c => c.value),
+    ...[...document.querySelectorAll('input[name="p2prefs"]:checked')].map(c => c.value)
+  ]);
+  // Map pref keys to keywords that appear in commands
+  const PREF_KEYWORDS = {
+    hair_pulling:  [/\bhair\b.*\b(pull|yank|grip|grab|fist)\b/i, /\b(pull|yank|grip|grab|fist)\b.*\bhair\b/i],
+    blindfolds:    [/\bblind\s?fold/i],
+    spanking:      [/\bspank/i],
+    choking:       [/\bchok/i, /\bthroat\b(?!.*fuck)/i, /\bhand\b.*\bthroat\b/i],
+    dirty_talk:    [/\bdirty\s*talk/i],
+    edging:        [/\bedg(e|ing)\b/i],
+    restraint:     [/\brestrain/i, /\btie\b.*\bwrist/i, /\bwrist\b.*\btie\b/i, /\btied\b/i, /\bbelt\b.*\bscarf\b/i, /\bheadboard\b/i],
+    toys:          [/\btoy\b/i, /\bvib(e|rator)\b/i, /\bdildo\b/i, /\bplug\b/i],
+    anal:          [/\banal\b/i, /\b(her|his|your)\s+ass\b(?!.*spank)(?!.*slap)(?!.*come\s+on)/i, /\basshole\b/i],
+    exhibitionism: [/\bexhibition/i, /\bwindow\b.*\bcurtain/i],
+    degradation:   [/\bdegrad/i, /\bwhat\s+(she|he)\s+is\b/i, /\bwhat\s+(she|he)'s\s+for\b/i],
+    tit_fucking:   [/\btit\s*fuck/i, /\bcock\s+between\s+(her|those)\s+(perfect\s+)?(tits|breasts)\b/i],
+    face_sitting:  [/\bface\s*sit/i, /\bsit\s+(on\s+)?(his|her)\s+face\b/i, /\bstraddle\s+(his|her)\s+face\b/i],
+    throat_fucking:[/\bthroat\s*fuck/i, /\bdeep\s*throat/i, /\bgag\b/i, /\bdown\s+(his|her)\s+throat\b/i],
+    double_penetration: [/\bdouble\b.*\bpenetrat/i, /\bdouble\s+stuff/i, /\bboth\s+holes\b/i],
+    porn:          [/\bporn\b/i]
+  };
+  // Only filter kinks that are in the keyword map and that NO player selected
+  const unselectedPrefs = Object.keys(PREF_KEYWORDS).filter(k => !allPlayerPrefs.has(k));
+  if (unselectedPrefs.length > 0) {
+    const filterPatterns = unselectedPrefs.flatMap(k => PREF_KEYWORDS[k]);
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      const before = COMMANDS[lvl].length;
+      COMMANDS[lvl] = COMMANDS[lvl].filter(cmd => {
+        return !filterPatterns.some(rx => rx.test(cmd));
+      });
+      // Safety: never empty a round completely
+      if (COMMANDS[lvl].length === 0) {
+        if (packName === 'standard') COMMANDS[lvl] = [...STANDARD_COMMANDS[lvl]];
+        else COMMANDS[lvl] = [...(PACKS[packName][lvl] || STANDARD_COMMANDS[lvl] || [])];
+      }
+    }
+  }
+
+  showAIIntro();
+  goTo('screen-aiintro');
+}
+
+function startGame() { setLevel(1); goTo('screen-game'); requestWakeLock(); setTimeout(() => drawCommand(), 300); }
+
+// ── LEVEL ──
+function setLevel(n) {
+  if (!COMMANDS[n] || COMMANDS[n].length === 0) return;
+  currentLevel = n;
+  deck = shuffle(COMMANDS[n]);
+  currentCommand = '';
+  roundDrawCount = 0;
+  stopTimer();
+  const cmdEl = document.getElementById('commandLine'); if(cmdEl){cmdEl.textContent=''; cmdEl.style.opacity='0.4';}
+  document.getElementById('levelLabel').textContent = 'Round ' + levelRoman[n] + ' · ' + levelNames[n];
+  resetTimerDisplay();
+  for (let i = 1; i <= 5; i++) document.getElementById('lvl'+i+'btn').classList.toggle('active', i === n);
+  for (let i = 1; i <= 5; i++) {
+    document.getElementById('h'+i).className = 'heat-dot' + (i <= n ? (n >= 4 ? ' hot' : ' on') : '');
+  }
+  const rfWrap = document.getElementById('readyFinishWrap');
+  if (rfWrap) rfWrap.style.display = n === 4 ? 'block' : 'none';
+
+  stopDirectorMode();
+}
+
+// ── SHUFFLE ──
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function shuffleDeck() {
+  deck = shuffle(COMMANDS[currentLevel]);
+  const subEl = document.getElementById('commandSub'); if(subEl) subEl.textContent = 'Reshuffled';
+}
+
+// ── DRAW ──
+function drawCommand() {
+  if (deck.length === 0) shuffleDeck();
+  if (deck.length > 1 && currentCommand) {
+    if (deck[deck.length-1] === currentCommand) {
+      const swapIdx = Math.floor(Math.random() * (deck.length - 1));
+      [deck[deck.length-1], deck[swapIdx]] = [deck[swapIdx], deck[deck.length-1]];
+    }
+  }
+  const raw = deck.pop();
+  currentCommand = raw;
+  stopTimer();
+  const el = document.getElementById('commandLine');
+  const imgEl = document.getElementById('commandImg');
+  el.style.opacity = '0';
+  if (imgEl) { imgEl.classList.remove('visible'); }
+  setTimeout(() => {
+    // Parse __url__ image delimiter
+    let displayText = currentCommand;
+    let imgUrl = '';
+    const parts = displayText.split('__');
+    if (parts.length >= 3) {
+      for (let i = 1; i < parts.length - 1; i += 2) {
+        const candidate = parts[i].trim();
+        if (candidate.startsWith('http')) {
+          imgUrl = candidate;
+          parts.splice(i - 0, 2, '');
+          break;
+        }
+      }
+      displayText = parts.join('').replace(/\s+/g, ' ').trim();
+    }
+    if (imgEl) {
+      if (imgUrl) {
+        imgEl.src = imgUrl;
+        imgEl.style.display = 'block';
+        imgEl.onload = () => imgEl.classList.add('visible');
+        imgEl.onerror = () => { imgEl.style.display = 'none'; };
+      } else {
+        imgEl.style.display = 'none';
+        imgEl.src = '';
+      }
+    }
+    // Replace HIM:/HER:/BOTH: prefixes with player names for display
+    let whoLabel = '';
+    if (/^HIM:\s*/i.test(displayText)) {
+      whoLabel = hisName || 'Him';
+      displayText = displayText.replace(/^HIM:\s*/i, '');
+    } else if (/^HER:\s*/i.test(displayText)) {
+      whoLabel = herName || 'Her';
+      displayText = displayText.replace(/^HER:\s*/i, '');
+    } else if (/^BOTH:\s*/i.test(displayText)) {
+      whoLabel = 'Both';
+      displayText = displayText.replace(/^BOTH:\s*/i, '');
+    }
+    if (whoLabel) {
+      el.innerHTML = '<span style="display:block; font-size:0.72rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-bottom:0.6rem;">' + whoLabel + '</span>' + displayText;
+    } else {
+      el.textContent = displayText;
+    }
+    el.style.opacity = '1';
+    roundDrawCount++;
+    const limit = ROUND_LIMIT[currentLevel] || 99;
+    const subEl2 = document.getElementById('commandSub'); if(subEl2) subEl2.textContent = 'Turn ' + roundDrawCount + ' of ' + limit;
+    if (levelDuration[currentLevel] > 0) startTimer(levelDuration[currentLevel]); else resetTimerDisplay();
+    playCommentary();
+    if (voiceEnabled) setTimeout(() => speakCurrent(), 400);
+    if (roundDrawCount >= limit) {
+      stopTimer(); resetTimerDisplay();
+      const next = currentLevel + 1;
+      if (next <= 5) showRoundComplete(next);
+    }
+  }, 280);
+}
+
+function skipCommand() { if (deck.length === 0) shuffleDeck(); drawCommand(); }
+function replayCommand() {
+  if (!currentCommand || currentCommand === 'Draw your first command...') return;
+  if (speaking) {
+    if (currentAudio) { try{currentAudio.pause(); currentAudio.src="";}catch(_){} currentAudio = null; }
+    window.speechSynthesis.cancel(); speaking = false;
+    document.getElementById('speakBtn').classList.remove('speaking');
+  }
+  setTimeout(() => speakCurrent(), 100);
+}
+
+// ── ROUND COMPLETE ──
+
+function showWrapUp() {
+  releaseWakeLock();
+  const title = document.getElementById('wrapupTitle');
+  const msg   = document.getElementById('wrapupMsg');
+  title.textContent = herName + ' and ' + hisName + '.';
+  msg.innerHTML = 'That was absolutely everything.<br>You two are incredible together.<br><br>Take a breath. Clean each other up.<br>You earned it.';
+  goTo('screen-wrapup');
+  if (voiceEnabled) {
+    const line = herName + ' and ' + hisName + '. That was absolutely everything. You two are incredible together. Now take a breath, clean up, and remind each other how lucky you are.';
+    if (elKey) playElevenLabs(line, elKey, elVoiceId, elStability, elStyle, elSpeed).catch(()=>{});
+    
+  }
+}
+
+function goToFinish() {
+  showRoundComplete(5);
+}
+
+
+// ── AUTO-DIRECTOR MODE (Rounds 3+) ──
+let directorActive = false;
+let directorTimer = null;
+let directorIdx = 0;
+
+const DIRECTOR_COMMANDS = {
+  3: [
+    "Slower.", "Deeper.", "Don't stop.", "Flip her over.", "Pull her hair.",
+    "Look at her.", "Tell her she's beautiful.", "Faster.", "Hold her down.",
+    "Grab her hips.", "Change position.", "Get on top.", "Kiss her.",
+    "Don't let her look away.", "Go harder.", "Stay right there.",
+    "Make her tell you what she wants.", "Touch her while you're inside her.",
+    "Switch.", "Hold still. Feel that."
+  ],
+  4: [
+    "Harder.", "Don't stop.", "Hold her throat lightly.", "Spank her.",
+    "Pull her hair.", "Flip her.", "Tell her what she is.", "Faster.",
+    "Deeper.", "Make her beg.", "Don't let her come yet.", "Switch holes.",
+    "Pin her down.", "Make her say your name.", "Don't slow down.",
+    "Use the toy.", "Tell her what you're going to do next.", "Grab her ass.",
+    "Make her louder.", "Don't you dare stop."
+  ],
+  5: [
+    "You're almost there.", "Don't hold back.", "Tell her where.",
+    "Look her in the eyes.", "Finish her first.", "Don't stop.",
+    "Say her name.", "Let go.", "All of it.", "Now."
+  ]
+};
+
+function startDirectorMode(level) {
+  directorActive = true;
+  directorIdx = 0;
+  const cmds = [...(DIRECTOR_COMMANDS[level] || DIRECTOR_COMMANDS[3])];
+  // Shuffle them
+  for (let i = cmds.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cmds[i], cmds[j]] = [cmds[j], cmds[i]];
+  }
+
+  // Show director mode UI
+  const stage = document.getElementById('commandStage');
+  const btnRow = document.querySelector('.btn-row');
+  const sub = document.getElementById('commandSub');
+  if (sub) sub.textContent = 'Director mode -- sit back';
+
+  // Hide Next/Skip/Replay - just Speak and Stop
+  document.getElementById('directorControls').style.display = 'flex';
+  document.querySelectorAll('.btn-row').forEach(r => r.style.display = 'none');
+
+  const interval = levelDuration[level] > 0 ? Math.min(levelDuration[level] * 1000, 45000) : 40000;
+
+  function issueCommand() {
+    if (!directorActive) return;
+    const cmd = cmds[directorIdx % cmds.length];
+    directorIdx++;
+
+    const lineEl = document.getElementById('commandLine');
+    if (lineEl) {
+      lineEl.style.opacity = '0';
+      setTimeout(() => { lineEl.textContent = cmd; lineEl.style.opacity = '1'; }, 300);
+    }
+
+    if (voiceEnabled && elKey) {
+      playElevenLabs(cmd, elKey, elVoiceId, elStability, elStyle, elSpeed).catch(()=>{});
+    }
+
+    directorTimer = setTimeout(issueCommand, interval);
+  }
+
+  issueCommand();
+}
+
+function stopDirectorMode() {
+  directorActive = false;
+  if (directorTimer) { clearTimeout(directorTimer); directorTimer = null; }
+  if (currentAudio) { try{currentAudio.pause(); currentAudio.src="";}catch(_){} currentAudio = null; }
+  window.speechSynthesis.cancel();
+  document.getElementById('directorControls').style.display = 'none';
+  document.querySelectorAll('.btn-row').forEach(r => r.style.display = 'flex');
+  const sub = document.getElementById('commandSub');
+  if (sub) sub.textContent = '';
+}
+
+function goAgain() {
+  // Reset to pack select with same names and settings
+  roundDrawCount = 0;
+  currentCommand = '';
+  goTo('screen-packs');
+}
+
+function showRoundComplete(nextLevel) {
+  pendingNextLevel = nextLevel;
+  if (currentLevel === 1 && nextLevel === 2) {
+    goTo('screen-undress');
+    if (voiceEnabled) {
+      const line = 'Round one is done. Now take everything off. Both of you. Right now.';
+      if (elKey) playElevenLabs(line, elKey, elVoiceId, elStability, elStyle, elSpeed).catch(()=>{});
+      
+    }
+    return;
+  }
+  const overlay = document.getElementById('roundCompleteOverlay');
+  document.getElementById('roundCompleteTitle').textContent = 'Round ' + levelRoman[currentLevel] + ' Complete';
+  const skipLabel = document.getElementById('skipRoundLabel');
+  if (skipLabel) skipLabel.textContent = levelRoman[pendingNextLevel + 1 <= 5 ? pendingNextLevel + 1 : pendingNextLevel];
+  document.getElementById('roundCompleteMsg').textContent = 'Up next: Round ' + levelRoman[nextLevel] + ' — ' + levelNames[nextLevel];
+  overlay.style.display = 'flex';
+  stopTimer();
+  if (voiceEnabled) {
+    const line = 'Round ' + levelRoman[currentLevel] + ' is done. Are you ready for Round ' + levelRoman[nextLevel] + '?';
+    if (elKey) playElevenLabs(line, elKey, elVoiceId, elStability, elStyle, elSpeed).catch(()=>{});
+    
+  }
+}
+function skipRound() {
+  const next = (pendingNextLevel > currentLevel ? pendingNextLevel : currentLevel + 1);
+  if (next > 5) { document.getElementById('roundCompleteOverlay').style.display='none'; goTo('screen-end'); return; }
+  document.getElementById('roundCompleteOverlay').style.display = 'none';
+  pendingNextLevel = next;
+  roundDrawCount = 0;
+  goTo('screen-game');
+  setLevel(next);
+  setTimeout(() => drawCommand(), 400);
+  requestWakeLock();
+}
+function advanceRound() {
+  document.getElementById('roundCompleteOverlay').style.display = 'none';
+  goTo('screen-game');
+  setLevel(pendingNextLevel);
+  setTimeout(() => drawCommand(), 400);
+  requestWakeLock();
+}
+
+// ── TIMER ──
+function startTimer(seconds) {
+  stopTimer(); timerTotal = seconds; timerRemaining = seconds; updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    if (timerRemaining <= 0) { timerRemaining = 0; updateTimerDisplay(true); stopTimer(); playChime(); }
+    else updateTimerDisplay();
+  }, 1000);
+}
+function stopTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
+function resetTimerDisplay() {
+  document.getElementById('timerDigit').textContent = '';
+  document.getElementById('timerDigit').classList.remove('urgent');
+  document.getElementById('timerLabel').textContent = '';
+  const arc = document.getElementById('timerArc');
+  arc.style.strokeDasharray = CIRC; arc.style.strokeDashoffset = CIRC; arc.classList.remove('urgent');
+}
+function updateTimerDisplay(done) {
+  const digit = document.getElementById('timerDigit');
+  const label = document.getElementById('timerLabel');
+  const arc   = document.getElementById('timerArc');
+  if (done) {
+    digit.innerHTML = '<span class="timer-done">Time!</span>'; digit.classList.remove('urgent');
+    label.textContent = 'draw next'; arc.style.strokeDashoffset = CIRC; arc.classList.remove('urgent'); return;
+  }
+  const m = Math.floor(timerRemaining/60), s = timerRemaining%60;
+  digit.textContent = m + ':' + String(s).padStart(2,'0');
+  const urgent = timerRemaining <= 30;
+  digit.classList.toggle('urgent', urgent); arc.classList.toggle('urgent', urgent);
+  arc.style.strokeDasharray = CIRC; arc.style.strokeDashoffset = CIRC * (1 - timerRemaining/timerTotal);
+  label.textContent = timerTotal <= 120 ? '2 min round' : '5 min round';
+}
+
+async function speakCurrent() {
+  if (!voiceEnabled) return;
+  if (!currentCommand || currentCommand === 'Draw your first command...') {
+    await playIntro(); return;
+  }
+  if (speaking) {
+    if (currentAudio) { try{currentAudio.pause(); currentAudio.src="";}catch(_){} currentAudio = null; }
+    window.speechSynthesis.cancel(); speaking = false;
+    document.getElementById('speakBtn').classList.remove('speaking'); return;
+  }
+  speaking = true; document.getElementById('speakBtn').classList.add('speaking');
+  if (elKey) {
+    try { await playElevenLabs(currentCommand, elKey, elVoiceId, elStability, elStyle, elSpeed); }
+    catch(e) { speaking = false; document.getElementById('speakBtn').classList.remove('speaking'); }
+  } else { speaking = false; document.getElementById('speakBtn').classList.remove('speaking'); }
+}
+function fallbackSpeak() {
+  // Browser voice disabled -- ElevenLabs only
+  speaking = false;
+  document.getElementById('speakBtn').classList.remove('speaking');
+}
+async function playIntro() {
+  if (!voiceEnabled) return;
+  const script = "Draw your first command and let's get started.";
+  if (elKey) playElevenLabs(script, elKey, elVoiceId, elStability, elStyle, elSpeed).catch(()=>{});
+  
+}
+async function playElevenLabs(text, key, voiceId, stability, style, speed=0.9) {
+  let res;
+  try {
+    res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
+      method:'POST',
+      headers:{ 'xi-api-key': key, 'Content-Type':'application/json', 'Accept':'audio/mpeg' },
+      body: JSON.stringify({ text, model_id:'eleven_turbo_v2_5', voice_settings:{ stability, similarity_boost:0.75, style, use_speaker_boost:true } })
+    });
+  } catch(e) { throw new Error('Failed to fetch -- ' + e.message); }
+  if (!res.ok) { let m='API error '+res.status; try{const b=await res.json();m=b.detail?.message||m;}catch(_){} throw new Error(m); }
+  const blob = await res.blob();
+  if (blob.size === 0) throw new Error('Empty audio response');
+  const url = URL.createObjectURL(blob);
+
+  // Stop any currently playing audio
+  if (currentAudio) {
+    try { currentAudio.pause(); currentAudio.src = ''; } catch(_) {}
+    currentAudio = null;
+  }
+
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.playbackRate = speed;
+    currentAudio = audio;
+
+    audio.onended = () => {
+      speaking = false;
+      currentAudio = null;
+      const btn = document.getElementById('speakBtn');
+      if (btn) btn.classList.remove('speaking');
+      try { URL.revokeObjectURL(url); } catch(_) {}
+      resolve();
+    };
+    audio.onerror = () => {
+      try { URL.revokeObjectURL(url); } catch(_) {}
+      reject(new Error('Audio playback error'));
+    };
+
+    // iOS: set src and call play() — AudioContext unlock already happened on gesture
+    audio.src = url;
+    audio.load();
+    audio.play().catch(e => {
+      // If iOS blocks it, try via AudioContext decode as fallback
+      const ctx = getAudioCtx();
+      fetch(url).then(r => r.arrayBuffer()).then(buf => {
+        ctx.decodeAudioData(buf, decoded => {
+          const src = ctx.createBufferSource();
+          src.buffer = decoded;
+          src.playbackRate.value = speed;
+          src.connect(ctx.destination);
+          src.onended = () => {
+            speaking = false; currentAudio = null;
+            const btn = document.getElementById('speakBtn');
+            if (btn) btn.classList.remove('speaking');
+            try { URL.revokeObjectURL(url); } catch(_) {}
+            resolve();
+          };
+          src.start(0);
+          currentAudio = { pause: () => { try{src.stop();}catch(_){} }, src: '' };
+        }, () => reject(new Error('Decode failed')));
+      }).catch(() => reject(e));
+    });
+  });
+}
+async function testVoice() {
+  const key = document.getElementById('elApiKey').value.trim().replace(/[^ -~]/g,'');
+  const vid  = document.getElementById('elVoice').value;
+  const errEl = document.getElementById('voiceError');
+  const btn   = document.getElementById('testBtn');
+  errEl.style.color='#c06040';
+  if (!key) { errEl.textContent='Enter your API key first.'; return; }
+  errEl.textContent='Connecting...'; btn.textContent='Loading...'; btn.disabled=true;
+  try {
+    await playElevenLabs('Tell me what you want tonight.', key, vid,
+      parseFloat(document.getElementById('elStability').value),
+      parseFloat(document.getElementById('elStyle').value),
+      parseFloat(document.getElementById('elSpeed').value));
+    errEl.style.color='var(--gold-dim)'; errEl.textContent='Sounding good.';
+  } catch(e) {
+    errEl.style.color='#c06040';
+    const msg = e.message||String(e);
+    if (msg.includes('Failed to fetch')||msg.includes('CORS')) {
+      errEl.innerHTML='CORS error -- open via local server.';
+      document.getElementById('corsHelp').style.display='block';
+    } else errEl.textContent='Error: '+msg;
+  } finally { btn.textContent='Test Voice'; btn.disabled=false; }
+}
+
+// ── COMMENTARY ──
+const COMMENTARY = ["Good. Now draw again.","I love that for you. Keep going.","Mmm. Don't stop now.","That's what I thought. Next.","You heard me. Draw.","Oh, you're going to like this next one.","Don't overthink it. Just do it.","Yes. Exactly like that.","Keep going. You're just getting started.","Draw the next one. Trust me."];
+let lastCommentaryIdx = -1;
+async function playCommentary() {
+  if (!voiceEnabled) return;
+  if (Math.random() > 0.45) return;
+  let idx; do { idx = Math.floor(Math.random()*COMMENTARY.length); } while(idx===lastCommentaryIdx);
+  lastCommentaryIdx = idx;
+  await new Promise(r=>setTimeout(r,600));
+  const line = COMMENTARY[idx];
+  if (elKey) { try{await playElevenLabs(line,elKey,elVoiceId,elStability,elStyle,elSpeed);}catch(e){} }
+}
+
+// ── MUSIC ──
+function toggleYT() {
+  ytOn = !ytOn;
+  document.getElementById('ytWrap').style.display = ytOn ? 'block' : 'none';
+  document.getElementById('musicBtn').textContent = ytOn ? '♪ Mood Music: On' : '♪ Mood Music: Off';
+  if (ytOn) setTimeout(() => { if (typeof SC !== 'undefined') { scWidget = SC.Widget(document.getElementById('scPlayer')); scWidget.setVolume(parseInt(document.getElementById('musicVolume').value)); } }, 800);
+}
+function setMusicVolume(val) {
+  document.getElementById('volLabel').textContent = val;
+  if (scWidget) scWidget.setVolume(parseInt(val));
+}
+
+// ── VOICES ──
+function loadVoices() {
+  const all = window.speechSynthesis.getVoices();
+  femaleVoice = all.find(v=>/female|woman|zira|samantha|victoria|karen|moira|tessa|fiona|kate|serena|ava|allison|susan|lisa|nicky/i.test(v.name))||all[0]||null;
+}
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+// ── VOICE TOGGLE UI ──
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('voiceToggle');
+  const thumb  = document.getElementById('voiceToggleThumb');
+  const track  = document.getElementById('voiceToggleSlider');
+  if (!toggle) return;
+  function updateToggleUI() {
+    voiceEnabled = toggle.checked;
+    track.style.background = voiceEnabled ? 'var(--gold)' : '#3a3a3a';
+    thumb.style.left       = voiceEnabled ? '23px' : '3px';
+  }
+  toggle.addEventListener('change', updateToggleUI);
+});
+
+// ── EDITOR ──
+function openEditor() {
+  for (let lvl=1;lvl<=5;lvl++) document.getElementById('edit'+lvl).value=(COMMANDS[lvl]||[]).join('\n');
+  switchEditTab(1); goTo('screen-edit');
+}
+function switchEditTab(n) {
+  for (let i=1;i<=5;i++) {
+    document.getElementById('etab'+i).classList.toggle('active',i===n);
+    document.getElementById('editPanel'+i).style.display=i===n?'block':'none';
+  }
+}
+function saveEditedCommands() {
+  for (let lvl=1;lvl<=5;lvl++) {
+    const lines=document.getElementById('edit'+lvl).value.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    COMMANDS[lvl]=lines;
+  }
+  const saved=document.getElementById('editSaved');
+  saved.style.display='block';
+  setTimeout(()=>{ saved.style.display='none'; goTo('screen-game'); setLevel(currentLevel); },1000);
+}
+function restoreDefaults() {
+  const source = activePack === 'standard' ? STANDARD_COMMANDS : (PACKS[activePack] || STANDARD_COMMANDS);
+  for (let lvl=1;lvl<=5;lvl++) {
+    COMMANDS[lvl] = [...(source[lvl] || [])];
+    document.getElementById('edit'+lvl).value = COMMANDS[lvl].join('\n');
+  }
+  const saved=document.getElementById('editSaved');
+  saved.style.display='block';
+  saved.textContent = 'Defaults restored!';
+  setTimeout(()=>{ saved.style.display='none'; saved.textContent='Saved!'; },1500);
+}
+
+// ── RESTART ──
+function restart() {
+  stopTimer();
+  if (currentAudio){ try{currentAudio.stop();}catch(_){} currentAudio=null;}
+  releaseWakeLock();
+  document.getElementById('p1name').value='';
+  document.getElementById('p2name').value='';
+  document.querySelectorAll('input[type="checkbox"]').forEach(c=>c.checked=false);
+  herName=''; hisName=''; finishPrefs=[];
+  goTo('screen-intro');
+}
+
+// ── LOCAL STORAGE PERSISTENCE ──
+function saveSettings() {
+  try {
+    const data = {
+      p1name: document.getElementById('p1name').value,
+      p2name: document.getElementById('p2name').value,
+      p1gender: document.querySelector('input[name="p1gender"]:checked')?.value,
+      p2gender: document.querySelector('input[name="p2gender"]:checked')?.value,
+      elApiKey: document.getElementById('elApiKey').value,
+      elVoice: document.getElementById('elVoice').value,
+      elStability: document.getElementById('elStability').value,
+      elStyle: document.getElementById('elStyle').value,
+      elSpeed: document.getElementById('elSpeed').value,
+      voiceToggle: document.getElementById('voiceToggle').checked,
+      timer1: document.getElementById('timer1').value,
+      timer2: document.getElementById('timer2').value,
+      timer3: document.getElementById('timer3').value,
+      timer4: document.getElementById('timer4').value,
+      timer5: document.getElementById('timer5').value,
+    };
+    localStorage.setItem('2play_settings', JSON.stringify(data));
+  } catch(e) {}
+}
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('2play_settings');
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    // Names intentionally not restored - always start blank
+    if (d.p1gender) { const r = document.querySelector('input[name="p1gender"][value="'+d.p1gender+'"]'); if(r) r.checked = true; }
+    if (d.p2gender) { const r = document.querySelector('input[name="p2gender"][value="'+d.p2gender+'"]'); if(r) r.checked = true; }
+    if (d.elApiKey) document.getElementById('elApiKey').value = d.elApiKey;
+    if (d.elVoice) document.getElementById('elVoice').value = d.elVoice;
+    if (d.elStability) { document.getElementById('elStability').value = d.elStability; document.getElementById('stabVal').textContent = parseFloat(d.elStability).toFixed(2); }
+    if (d.elStyle) { document.getElementById('elStyle').value = d.elStyle; document.getElementById('styleVal').textContent = parseFloat(d.elStyle).toFixed(2); }
+    if (d.elSpeed) { document.getElementById('elSpeed').value = d.elSpeed; document.getElementById('speedVal').textContent = parseFloat(d.elSpeed).toFixed(2); }
+    if (d.voiceToggle !== undefined) { document.getElementById('voiceToggle').checked = d.voiceToggle; voiceEnabled = d.voiceToggle; const track = document.getElementById('voiceToggleSlider'); const thumb = document.getElementById('voiceToggleThumb'); if(track) track.style.background = d.voiceToggle ? 'var(--gold)' : '#3a3a3a'; if(thumb) thumb.style.left = d.voiceToggle ? '23px' : '3px'; }
+    ['timer1','timer2','timer3','timer4','timer5'].forEach(id => { if (d[id]) document.getElementById(id).value = d[id]; });
+  } catch(e) {}
+}
+// Auto-save on navigation past names/voice screens
+const _origLaunchGame = launchGame;
+launchGame = function() { saveSettings(); _origLaunchGame(); };
+
+// Load on page ready
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+</body>
+</html>
